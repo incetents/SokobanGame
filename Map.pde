@@ -106,6 +106,20 @@ class GameMap
     return x >= 0 && x < m_width && y >= 0 && y < m_height;
   }
 
+  public void RecalculateTargetCount()
+  {
+    targetCount = 0;
+    for (int x = 0; x < m_width; x++)
+    {
+      for (int y = 0; y < m_height; y++)
+      {
+        BlockType t = bgLayer.nodes[x][y].type;
+        if (t == BlockType.TARGET)
+          targetCount++;
+      }
+    }
+  }
+
   public GameMap(String levelMap, int w)
   {
     int h = levelMap.length() / w;

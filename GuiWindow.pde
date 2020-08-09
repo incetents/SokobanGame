@@ -81,7 +81,14 @@ class GuiWindow
     else
       nameBar_Btn.draw(color(64));
     // Name
+     clip(
+      nameBar_Btn.getPosition().x + nameBar_Btn.boundingBox.size.x / 2.0, 
+      nameBar_Btn.getPosition().y + nameBar_Btn.boundingBox.size.y / 2.0, 
+      nameBar_Btn.boundingBox.size.x, 
+      nameBar_Btn.boundingBox.size.y
+      );
     RenderText(title, nameBar_Btn.getPosition().x + 4, position.y + 4 - getFontHeight() / 2.0, color(255), TEXTH.LEFT, 0.5);
+    noClip();
 
     // Exit Button
     if (X_Btn.isHovered() && !mousePressed)

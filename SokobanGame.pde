@@ -23,6 +23,9 @@ float levelTransitionTime = 0.0f;
 float levelTransitionIntroSpeed = 1.25f;
 float levelTransitionOutroSpeed = 1.75f;
 
+// Undo
+boolean doingUndo = false;
+
 // Ticks
 int TickCounter = 0;
 // Time
@@ -33,15 +36,26 @@ double deltaTime = 1;
 // Block Index for what mouse is hovering
 PVector selectionPoint = new PVector(0, 0);
 
+// Editor Info
+boolean editorMode = true;
+BlockType editorBlockDraw = BlockType.WALL;
+int editorBlockDrawIndex = 0;
+ArrayList<BlockType> editorBlockDrawList = new ArrayList<BlockType>() {
+  {
+    add(BlockType.WALL);
+    add(BlockType.FLOOR);
+    add(BlockType.TARGET);
+  }
+};
+
 //
 Direction lastPlayerDirection = Direction.RIGHT; 
 
 //
-boolean doingUndo = false;
-
-//
 PShader shader_transition;
 
+// Guis
+Gui_LevelSelector gui_levelSelector = null;
 // Gui Window
 GuiWindow currentGuiWindow = null;
 
@@ -49,6 +63,9 @@ void setup()
 {
   //
   size(1080, 720, P2D);
+  
+  // Setup Guis
+  gui_levelSelector = new Gui_LevelSelector("Level - Selector", new PVector(100.0, 100.0), new PVector(500.0, 300.0), new PVector(160, 80));
 
   // remove image smoothing
   ((PGraphicsOpenGL)g).textureSampling(3); // the magic
@@ -59,8 +76,6 @@ void setup()
   // Setup Assets
   SetupAssets();
   SetCurrentFont("8bit");
-
-  currentGuiWindow = new Gui_LevelSelector("Level - Selector", new PVector(100.0, 100.0), new PVector(500.0, 300.0), new PVector(160, 80));
 
   // Shaders
   shader_transition = loadShader("Shaders/transitionEffect_Frag.glsl", "Shaders/transitionEffect_Vert.glsl");
@@ -95,16 +110,62 @@ void setup()
 
 void update()
 {
-  // Update Selection
-  if (currentGuiWindow == null)
+  // Gui - Level Selector
+  if (Input.GetKeyDown('1') && editorMode)
   {
-    // New GUI
-    if (Input.GetKey('1'))
-    {
-      // GUI
-      currentGuiWindow = new Gui_LevelSelector("Level - Selector", new PVector(100.0, 100.0), new PVector(500.0, 300.0), new PVector(160, 80));
-    }
+    if (currentGuiWindow == null)
+      currentGuiWindow = gui_levelSelector;
+    else
+      currentGuiWindow = null;
+  }
 
+  // Hovered Button
+  hoveredButton = null;
+  if (!mousePressed)
+    pressedButton = null;
+  // GUI
+  if (currentGuiWindow != null)
+  {
+    if (currentGuiWindow.close)
+    {
+      currentGuiWindow = null;
+      draggedButton = null;
+    } else
+    {
+      currentGuiWindow.update();
+
+      // Update Input
+      Input.EndUpdate();
+      return;
+    }
+  }
+
+  // Editor Mode
+  if (Input.GetKeyDown('x'))
+    editorMode = !editorMode;
+  if (editorMode)
+  {
+    // Block for Drawing
+
+    // Index Modification
+    if (Input.GetScrollDelta() == -1.0)
+      editorBlockDrawIndex++;
+    else  if (Input.GetScrollDelta() == 1.0)
+      editorBlockDrawIndex--;
+
+    if (editorBlockDrawIndex >= editorBlockDrawList.size())
+      editorBlockDrawIndex = 0;
+    else if (editorBlockDrawIndex < 0)
+      editorBlockDrawIndex = editorBlockDrawList.size() - 1;
+
+    editorBlockDraw = editorBlockDrawList.get(editorBlockDrawIndex);
+  }
+
+
+
+  // Update Selection
+  if (editorMode)
+  {
     // Correct X/Y
     selectionPoint.x = mouseX - CameraPosition.x;
     selectionPoint.y = mouseY - CameraPosition.y;
@@ -119,20 +180,45 @@ void update()
       int y = int(selectionPoint.y);
       if (Input.GetMouseButton(LEFT))
       {
-        gameMap.bgLayer.SetBlock(x, y, BlockType.WALL);
-      } else if (Input.GetMouseButton(CENTER))
+        gameMap.bgLayer.SetBlock(x, y, editorBlockDraw);
+
+        // Considerations
+        if (editorBlockDraw == BlockType.TARGET)
+          gameMap.RecalculateTargetCount();
+      }
+      //
+      else if (Input.GetMouseButton(RIGHT))
       {
-        gameMap.bgLayer.SetBlock(x, y, BlockType.FLOOR);
-      } else  if (Input.GetMouseButton(RIGHT))
-      {
+        boolean MapChanged = false;
+        // Considerations before delete
+        if (gameMap.bgLayer.nodes[x][y].type == BlockType.TARGET)
+          MapChanged = true;
+
         gameMap.bgLayer.SetBlock(x, y, BlockType.NOTHING);
+        gameMap.entityLayer.SetBlock(x, y, BlockType.NOTHING);
+
+        if (MapChanged)
+          gameMap.RecalculateTargetCount();
       }
     }
   }
 
   // Check if level is complete
-  if (gameMap.targetsFilled >= gameMap.targetCount)
+  if (!editorMode && gameMap.targetsFilled >= gameMap.targetCount)
   {
+    // Initial Level Complete
+    if (!levelTransitionMode)
+    {
+      EmitterController.add(new Emitter(
+        width / 2.0, height / 2.0, // X, Y
+        0.75, 26, // Lifetime, Count
+        color(255), color(10), // Color (start/end)
+        50, 0, // Size (start/end)
+        6, 10, 0.2, // SpeedMin, SpeedMax, Drag
+        new PVector(0, 1), 360 // Direction, AngleFuzz
+        ));
+    }
+
     levelTransitionMode = true;
   }
 
@@ -189,8 +275,11 @@ void update()
 
     // TEST
     if (Input.GetKey('r'))
-      levelTransitionMode = true;
-
+    {
+      gameMap = new GameMap(levelLayout, 20);
+      gameMap.UpdateAllSprites();
+    }
+    //
     else if (Input.GetKey(UP) && !Input.GetKey(DOWN))
       Move(Direction.UP);
     else  if (!Input.GetKey(UP) && Input.GetKey(DOWN))
@@ -210,21 +299,6 @@ void update()
 
   // Emitters
   EmitterController.update();
-
-  // Hovered Button
-  hoveredButton = null;
-  if (!mousePressed)
-    pressedButton = null;
-  // GUI
-  if (currentGuiWindow != null)
-  {
-    if (currentGuiWindow.close)
-    {
-      currentGuiWindow = null;
-      draggedButton = null;
-    } else
-      currentGuiWindow.update();
-  }
 
   // Update Input
   Input.EndUpdate();

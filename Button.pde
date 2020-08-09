@@ -71,6 +71,33 @@ class Button
     return dragDelta;
   }
 
+  public void setPosition(float x, float y)
+  {
+    if (boundingBox != null)
+    {
+      boundingBox.position.x = x;
+      boundingBox.position.y = y;
+    }
+    else if (triangleBox != null)
+    {
+      triangleBox.position.x = x;
+      triangleBox.position.y = y;
+    }
+  }
+  public void setPosition(PVector pos)
+  {
+    if (boundingBox != null)
+    {
+      boundingBox.position.x = pos.x;
+      boundingBox.position.y = pos.y;
+    }
+    else if (triangleBox != null)
+    {
+      triangleBox.position.x = pos.x;
+      triangleBox.position.y = pos.y;
+    }
+  }
+  
   public PVector getPosition()
   {
     if (boundingBox != null)
@@ -80,6 +107,7 @@ class Button
     else
       return null;
   }
+
 
   public void update()
   {

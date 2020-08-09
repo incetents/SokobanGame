@@ -3,9 +3,13 @@ class Gui_LevelSelector extends GuiWindow
 {
   // Data
   private ArrayList<String> levelNames = new ArrayList<String>();
-  //private String targetLevel = null;
-
   private ArrayList<Button> levelButtons = new ArrayList<Button>();
+
+  private float lowerGuiHeight = 20;
+  private Button export_btn = new Button(ButtonType.SQUARE);
+
+  private Viewport viewport_selectionArea = new Viewport();
+  private Viewport viewport_miniBar = new Viewport();
 
   //
   public Gui_LevelSelector(String _title, PVector _position, PVector _size, PVector _minSize)
@@ -31,6 +35,37 @@ class Gui_LevelSelector extends GuiWindow
   {
     super.update();
 
+    export_btn.update();
+
+    export_btn.setPosition(foreground.position.x, foreground.position.y + foreground.size.y - lowerGuiHeight);
+    export_btn.boundingBox.size = new PVector(lowerGuiHeight, lowerGuiHeight);
+
+    viewport_selectionArea.setCenter(
+      foreground.position.x + foreground.size.x / 2.0, 
+      foreground.position.y + foreground.size.y / 2.0 - lowerGuiHeight / 2.0
+      );
+    viewport_selectionArea.setSize(
+      foreground.size.x, 
+      foreground.size.y - lowerGuiHeight
+      );
+
+    viewport_miniBar.setCenter(
+      foreground.position.x + foreground.size.x / 2.0, 
+      foreground.position.y + foreground.size.y - lowerGuiHeight / 2.0
+      );
+    viewport_miniBar.setSize(
+      foreground.size.x, 
+      lowerGuiHeight
+      );
+
+    // MiniBar
+    if (export_btn.isReleased())
+    {
+      println("EXPORT");
+    }
+
+    // Selection Area
+    boolean MouseCanTouchButtons = viewport_selectionArea.isMouseInside();
     for (int i = 0; i < levelNames.size(); i++)
     {
       float x = foreground.position.x;
@@ -46,7 +81,7 @@ class Gui_LevelSelector extends GuiWindow
       btn.boundingBox.size.x = w;
       btn.boundingBox.size.y = h;
 
-      if (btn.isReleasedOnButton())
+      if (MouseCanTouchButtons && btn.isReleasedOnButton())
       {
         println(levelNames.get(i));
         close = true;
@@ -58,6 +93,9 @@ class Gui_LevelSelector extends GuiWindow
   public void draw()
   {
     super.draw();
+
+    //
+    viewport_selectionArea.bind();
 
     for (int i = 0; i < levelNames.size(); i++)
     {
@@ -74,5 +112,18 @@ class Gui_LevelSelector extends GuiWindow
 
       RenderText(levelNames.get(i), x + 4, y - getFontHeight() / 2.0, color(0, 255, 255), TEXTH.LEFT, 0.5);
     }
+
+    //
+    viewport_miniBar.bind();
+
+    if (export_btn.isHovered() && !mousePressed)
+      export_btn.draw(color(255));
+    else
+      export_btn.draw(color(150));
+
+    RenderText("EXPORT LEVEL", export_btn.getPosition().x + 24, export_btn.getPosition().y - getFontHeight() / 2.0, color(255), TEXTH.LEFT, 0.5);
+
+    //
+    unbindViewport();
   }
 }
