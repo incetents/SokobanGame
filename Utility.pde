@@ -73,15 +73,15 @@ boolean fileExists(String path)
 PVector GetNodeCenterFromIndex(int x, int y)
 {
   return new PVector(
-    (x * BlockSize) + CameraPosition.x + BlockSize/2.0, 
-    (y * BlockSize) + CameraPosition.y + BlockSize/2.0
+    (x * BlockSize) + camera.getX() + BlockSize/2.0, 
+    (y * BlockSize) + camera.getY() + BlockSize/2.0
     );
 }
 PVector GetNodePositionFromIndex(int x, int y)
 {
   return new PVector(
-    (x * BlockSize) + CameraPosition.x, 
-    (y * BlockSize) + CameraPosition.y
+    (x * BlockSize) + camera.getX(), 
+    (y * BlockSize) + camera.getY()
     );
 }
 

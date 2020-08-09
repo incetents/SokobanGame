@@ -1,4 +1,6 @@
 
+final int MinimumMaxSize = 2;
+
 String levelLayout =
   "XXXX00XXXXXXXXXXXXXX"+
   "XFF0F0000X0X0000000X"+
@@ -10,7 +12,7 @@ String levelLayout =
   "XFFF000000000000000X"+
   "XXXXXX0B0XXXXXXXXXXX";
 
-HashMap<Character, BlockType> levelInterpreter = new HashMap<Character, BlockType>()
+HashMap<Character, BlockType> levelReader = new HashMap<Character, BlockType>()
 {
   {
     put('0', BlockType.NOTHING);
@@ -21,12 +23,29 @@ HashMap<Character, BlockType> levelInterpreter = new HashMap<Character, BlockTyp
     put('T', BlockType.TARGET);
   }
 };
-public BlockType InterpretMapChar(char c)
+HashMap<BlockType, Character> levelWriter = new HashMap<BlockType, Character>();
+public char WriteMapChar(BlockType type)
 {
-  if (levelInterpreter.get(c) == null)
-    levelInterpreter.put(c, BlockType.ERROR);
+  // Effectively reversed from levelReader
+  if (levelWriter.get(type) == null)
+  {
+    for (Map.Entry mapElement : levelReader.entrySet())
+    {
+      BlockType t = (BlockType)mapElement.getValue();
+      if (t == type)
+      {
+        levelWriter.put(type, (char)mapElement.getKey());
+      }
+    }
+  }
+  return levelWriter.get(type);
+}
+public BlockType ReadMapChar(char c)
+{
+  if (levelReader.get(c) == null)
+    levelReader.put(c, BlockType.ERROR);
 
-  return levelInterpreter.get(c);
+  return levelReader.get(c);
 }
 
 class GameLayer
@@ -74,6 +93,96 @@ class GameLayer
   {
     return x >= 0 && x < m_width && y >= 0 && y < m_height;
   }
+
+  public void SubWidth()
+  {
+    // Min Size is 2x2
+    if (m_width == 2)
+      return;
+
+    Node[][] newNodes = new Node[m_width - 1][m_height];
+
+    // Copy old nodes
+    for (int x = 0; x < m_width - 1; x++)
+    {
+      for (int y = 0; y < m_height; y++)
+      {
+        newNodes[x][y] = new Node();
+        newNodes[x][y].copy(nodes[x][y]);
+      }
+    }
+
+    // Flags
+    nodes = newNodes;
+    m_width--;
+  }
+  public void SubHeight()
+  {
+    // Min Size is 2x2
+    if (m_height == 2)
+      return;
+
+    Node[][] newNodes = new Node[m_width][m_height - 1];
+
+    // Copy old nodes
+    for (int x = 0; x < m_width; x++)
+    {
+      for (int y = 0; y < m_height - 1; y++)
+      {
+        newNodes[x][y] = new Node();
+        newNodes[x][y].copy(nodes[x][y]);
+      }
+    }
+
+    // Flags
+    nodes = newNodes;
+    m_height--;
+  }
+  
+  public void AddWidth()
+  {
+    Node[][] newNodes = new Node[m_width + 1][m_height];
+    // Copy old nodes
+    for (int x = 0; x < m_width; x++)
+    {
+      for (int y = 0; y < m_height; y++)
+      {
+        newNodes[x][y] = new Node();
+        newNodes[x][y].copy(nodes[x][y]);
+      }
+    }
+    // Create new column
+    for (int y = 0; y < m_height; y++)
+    {
+      newNodes[m_width][y] = new Node();
+    }
+
+    // Flags
+    nodes = newNodes;
+    m_width++;
+  }
+  public void AddHeight()
+  {
+    Node[][] newNodes = new Node[m_width][m_height + 1];
+    // Copy old nodes
+    for (int x = 0; x < m_width; x++)
+    {
+      for (int y = 0; y < m_height; y++)
+      {
+        newNodes[x][y] = new Node();
+        newNodes[x][y].copy(nodes[x][y]);
+      }
+    }
+    // Create new row
+    for (int x = 0; x < m_width; x++)
+    {
+      newNodes[x][m_height] = new Node();
+    }
+
+    // Flags
+    nodes = newNodes;
+    m_height++;
+  }
 }
 
 class GameUndoEvent
@@ -120,6 +229,46 @@ class GameMap
     }
   }
 
+  public boolean SubWidth()
+  {
+    if(m_width == 2)
+      return false;
+    
+    m_width--;
+    bgLayer.SubWidth();
+    entityLayer.SubWidth();
+    
+    return true;
+  }
+  public boolean AddWidth()
+  {
+    m_width++;
+    bgLayer.AddWidth();
+    entityLayer.AddWidth();
+    
+    return true;
+  }
+  
+  public boolean SubHeight()
+  {
+    if(m_height == 2)
+      return false;
+    
+    m_height--;
+    bgLayer.SubHeight();
+    entityLayer.SubHeight();
+    
+    return true;
+  }
+  public boolean AddHeight()
+  {
+    m_height++;
+    bgLayer.AddHeight();
+    entityLayer.AddHeight();
+    
+    return true;
+  }
+
   public GameMap(String levelMap, int w)
   {
     int h = levelMap.length() / w;
@@ -128,17 +277,22 @@ class GameMap
     bgLayer = new GameLayer(w, h);
     entityLayer = new GameLayer(w, h);
 
+    int stringIndex = 0;
+
     // Setup scene
-    for (int x = 0; x < m_width; x++)
+    for (int y = 0; y < m_height; y++)
     {
-      for (int y = 0; y < m_height; y++)
+      for (int x = 0; x < m_width; x++)
       {
-        //int flipY = (m_height - y) - 1;
+        // Skip characters that are not important
+        while (levelMap.charAt(stringIndex) == '\n')
+          stringIndex++;
 
         // Interpret map for type
-        int stringIndex = x + y * m_width;
         char c = levelMap.charAt(stringIndex);
-        BlockType t = InterpretMapChar(c);
+        stringIndex++;
+
+        BlockType t = ReadMapChar(c);
         if (t == BlockType.PLAYER || t == BlockType.BLOCK)
           entityLayer.nodes[x][y].SetType(t);
         else
@@ -148,6 +302,11 @@ class GameMap
           targetCount++;
       }
     }
+
+    // Size of block based on screen size
+    AdjustBlockSize(this);
+    // Move camera to center
+    camera.setPositionToCenterOfMap(this);
   }
 
   public void UpdateAllSprites()

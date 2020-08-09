@@ -98,6 +98,11 @@ static class EmitterController
   {
     emitters.add(e);
   }
+  
+  static public void clear()
+  {
+    emitters = new ArrayList<Emitter>();
+  }
 
   static public void update()
   {

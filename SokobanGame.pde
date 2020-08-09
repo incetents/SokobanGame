@@ -8,7 +8,21 @@ GameMap gameMap = null;
 float BlockSize;
 float BlockSizeHalf;
 float BlockSizeQuarter;
-PVector CameraPosition = new PVector(0, 0);
+public void AdjustBlockSize(GameMap _gameMap)
+{
+  // Check Vertical Space
+  BlockSize = (height / _gameMap.m_height);
+  // Is Horizontal stretching off screen
+  if (_gameMap.m_width * BlockSize > width)
+    BlockSize = (width / _gameMap.m_width);
+
+  //
+  BlockSizeHalf = BlockSize / 2.0;
+  BlockSizeQuarter = BlockSizeHalf / 2.0;
+}
+
+// Camera
+Camera camera = new Camera();
 
 // Animation Effect
 boolean animationMode = false;
@@ -45,6 +59,8 @@ ArrayList<BlockType> editorBlockDrawList = new ArrayList<BlockType>() {
     add(BlockType.WALL);
     add(BlockType.FLOOR);
     add(BlockType.TARGET);
+    add(BlockType.BLOCK);
+    add(BlockType.PLAYER);
   }
 };
 
@@ -55,6 +71,7 @@ Direction lastPlayerDirection = Direction.RIGHT;
 PShader shader_transition;
 
 // Guis
+Gui_LevelSettings gui_levelSettings = null;
 Gui_LevelSelector gui_levelSelector = null;
 // Gui Window
 GuiWindow currentGuiWindow = null;
@@ -63,9 +80,10 @@ void setup()
 {
   //
   size(1080, 720, P2D);
-  
+
   // Setup Guis
   gui_levelSelector = new Gui_LevelSelector("Level - Selector", new PVector(100.0, 100.0), new PVector(500.0, 300.0), new PVector(160, 80));
+  gui_levelSettings = new Gui_LevelSettings("Level - Settings", new PVector(100.0, 100.0), new PVector(500.0, 300.0), new PVector(160, 80));
 
   // remove image smoothing
   ((PGraphicsOpenGL)g).textureSampling(3); // the magic
@@ -85,38 +103,30 @@ void setup()
   // Create Map
   gameMap = new GameMap(levelLayout, 20);
   gameMap.UpdateAllSprites();
-
-  // Fit to screen
-  //
-  // Check Vertical Space
-  BlockSize = (height / gameMap.m_height);
-  // Is Horizontal stretching off screen
-  if (gameMap.m_width * BlockSize > width)
-  {
-    BlockSize = (width / gameMap.m_width);
-    // Vertical Fix
-    float y_offset = height - (BlockSize * gameMap.m_height);
-    CameraPosition.y = round(y_offset / 2.0);
-  } else
-  {
-    // Horizontal Fix
-    float x_offset = width - (BlockSize * gameMap.m_width);
-    CameraPosition.x = round(x_offset / 2.0);
-  }
-  BlockSizeHalf = BlockSize / 2.0;
-  BlockSizeQuarter = BlockSizeHalf / 2.0;
 }
 
 
 void update()
 {
   // Gui - Level Selector
-  if (Input.GetKeyDown('1') && editorMode)
+  if (editorMode)
   {
-    if (currentGuiWindow == null)
-      currentGuiWindow = gui_levelSelector;
-    else
-      currentGuiWindow = null;
+    if (Input.GetKeyDown('1'))
+    {
+      if (currentGuiWindow == null)
+      {
+        currentGuiWindow = gui_levelSelector;
+        gui_levelSelector.refreshLevelSelection();
+      } else
+        currentGuiWindow = null;
+    } else if (Input.GetKeyDown('2'))
+    {
+      if (currentGuiWindow == null)
+      {
+        currentGuiWindow = gui_levelSettings;
+      } else
+        currentGuiWindow = null;
+    }
   }
 
   // Hovered Button
@@ -167,8 +177,8 @@ void update()
   if (editorMode)
   {
     // Correct X/Y
-    selectionPoint.x = mouseX - CameraPosition.x;
-    selectionPoint.y = mouseY - CameraPosition.y;
+    selectionPoint.x = mouseX - camera.getX();
+    selectionPoint.y = mouseY - camera.getY();
     // Convert to Index
     selectionPoint.x = floor(selectionPoint.x / BlockSize);
     selectionPoint.y = floor(selectionPoint.y / BlockSize);
@@ -180,7 +190,15 @@ void update()
       int y = int(selectionPoint.y);
       if (Input.GetMouseButton(LEFT))
       {
-        gameMap.bgLayer.SetBlock(x, y, editorBlockDraw);
+        // Entity Layer
+        if (
+          editorBlockDraw == BlockType.BLOCK ||
+          editorBlockDraw == BlockType.PLAYER
+          )
+          gameMap.entityLayer.SetBlock(x, y, editorBlockDraw);
+        // BG Layer
+        else
+          gameMap.bgLayer.SetBlock(x, y, editorBlockDraw);
 
         // Considerations
         if (editorBlockDraw == BlockType.TARGET)
@@ -233,6 +251,7 @@ void update()
       {
         gameMap = new GameMap(levelLayout, 20);
         gameMap.UpdateAllSprites();
+
         levelTransitionOutro = true;
       }
     } else
@@ -278,6 +297,7 @@ void update()
     {
       gameMap = new GameMap(levelLayout, 20);
       gameMap.UpdateAllSprites();
+      EmitterController.clear();
     }
     //
     else if (Input.GetKey(UP) && !Input.GetKey(DOWN))
@@ -304,6 +324,72 @@ void update()
   Input.EndUpdate();
 }
 
+void ImportLevel(String path)
+{
+  if (fileExists(path))
+  {
+    String newMapLayout = "";
+    int MapWidth = -1;
+    //
+    BufferedReader reader = createReader(path);
+    String line = null;
+    try {
+      while ((line = reader.readLine()) != null) {
+        newMapLayout = newMapLayout + line + "\n";
+        if (MapWidth == -1)
+          MapWidth = line.length();
+        //String[] pieces = split(line, TAB);
+        //int x = int(pieces[0]);
+        //int y = int(pieces[1]);
+        //point(x, y);
+      }
+      reader.close();
+      //
+      gameMap = new GameMap(newMapLayout, MapWidth);
+      gameMap.UpdateAllSprites();
+      EmitterController.clear();
+    } 
+    catch (IOException e) {
+      e.printStackTrace();
+    }
+    //
+  }
+}
+void ExportLevel(File file)
+{
+  // Cancel
+  if (file == null)
+    return;
+
+  String desiredPath = file.getPath();
+
+  // Write
+  PrintWriter output = createWriter(desiredPath);
+  for (int y = 0; y < gameMap.m_height; y++)
+  {
+    for (int x = 0; x < gameMap.m_width; x++)
+    {
+      if (gameMap.bgLayer.nodes[x][y].type != BlockType.NOTHING)
+      {
+        output.print(WriteMapChar(gameMap.bgLayer.nodes[x][y].type));
+      } else if (gameMap.entityLayer.nodes[x][y].type != BlockType.NOTHING)
+      {
+        output.print(WriteMapChar(gameMap.entityLayer.nodes[x][y].type));
+      } else
+      {
+        output.print('0');
+      }
+    }
+    output.print("\n");
+  }
+  output.flush();
+  output.close();
+
+  if (gui_levelSelector != null)
+    gui_levelSelector.refreshLevelSelection();
+}
+
+//
 void Undo()
 {
   // Check if undo is available
@@ -330,7 +416,7 @@ void Undo()
 }
 
 
-
+//
 void Move(Direction direction)
 {
   doingUndo = false;

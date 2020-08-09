@@ -36,7 +36,7 @@ void draw()
 
   // Draw
   pushMatrix(); 
-  translate(CameraPosition.x, CameraPosition.y);
+  translate(camera.getX(), camera.getY());
   //
   DrawMapLayer(gameMap.bgLayer);
   DrawMapLayer(gameMap.entityLayer);
@@ -144,6 +144,12 @@ void draw()
       case TARGET:
         imageSprite = SpriteMap.get("target_1");
         break;
+      case BLOCK:
+        imageSprite = SpriteMap.get("block_1");
+        break;
+      case PLAYER:
+        imageSprite = SpriteMap.get("guy_1_right");
+        break;
       }
       if (imageSprite != null)
       {
@@ -154,12 +160,13 @@ void draw()
       RenderText("SCRL - Change Block", 160, yStart - getFontHeight() / 2.0 + fontYOffset, color(150), TEXTH.LEFT, 0.5);
       RenderText("LMB - DRAW | RMB - ERASE", 160, yStart + fontYOffset, color(150), TEXTH.LEFT, 0.5);
 
-       // Separator
+      // Separator
       fill(50);
       rect(420, yStart, 4, 42);
 
       // Shortcuts
       RenderText("'1' Level Selector", 428, yStart - getFontHeight() / 2.0 + fontYOffset, color(150), TEXTH.LEFT, 0.5);
+      RenderText("'2' Map Settings", 428, yStart + fontYOffset, color(150), TEXTH.LEFT, 0.5);
     }
   }
 

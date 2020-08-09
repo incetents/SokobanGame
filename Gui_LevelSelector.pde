@@ -2,7 +2,7 @@
 class Gui_LevelSelector extends GuiWindow
 {
   // Data
-  private ArrayList<String> levelNames = new ArrayList<String>();
+  private ArrayList<File> levelFiles = new ArrayList<File>();
   private ArrayList<Button> levelButtons = new ArrayList<Button>();
 
   private float lowerGuiHeight = 20;
@@ -16,6 +16,14 @@ class Gui_LevelSelector extends GuiWindow
   {
     super(_title, _position, _size, _minSize);
 
+    refreshLevelSelection();
+  }
+
+  public void refreshLevelSelection()
+  {
+    levelFiles.clear();
+    levelButtons.clear();
+
     //levelPaths
     //println(dataPath("Levels/"));
     File[] files = listFiles(dataPath("Levels/"));
@@ -23,7 +31,7 @@ class Gui_LevelSelector extends GuiWindow
       File f = files[i];   
       if (f.isFile())
       {
-        levelNames.add(f.getName());
+        levelFiles.add(f);
         levelButtons.add(new Button(ButtonType.SQUARE));
       }
       //f.isDirectory()
@@ -61,12 +69,12 @@ class Gui_LevelSelector extends GuiWindow
     // MiniBar
     if (export_btn.isReleased())
     {
-      println("EXPORT");
+      selectOutput("Export Level", "ExportLevel", new File(dataPath("Levels")));
     }
 
     // Selection Area
     boolean MouseCanTouchButtons = viewport_selectionArea.isMouseInside();
-    for (int i = 0; i < levelNames.size(); i++)
+    for (int i = 0; i < levelFiles.size(); i++)
     {
       float x = foreground.position.x;
       float y = foreground.position.y + i * 24;
@@ -83,8 +91,12 @@ class Gui_LevelSelector extends GuiWindow
 
       if (MouseCanTouchButtons && btn.isReleasedOnButton())
       {
-        println(levelNames.get(i));
-        close = true;
+        String path = levelFiles.get(i).getPath();
+        if (fileExists(path))
+          ImportLevel(path);          
+        else
+          refreshLevelSelection();
+          
         return;
       }
     }
@@ -97,7 +109,7 @@ class Gui_LevelSelector extends GuiWindow
     //
     viewport_selectionArea.bind();
 
-    for (int i = 0; i < levelNames.size(); i++)
+    for (int i = 0; i < levelFiles.size(); i++)
     {
       float x = foreground.position.x;
       float y = foreground.position.y + i * 24;
@@ -110,7 +122,7 @@ class Gui_LevelSelector extends GuiWindow
       else
         btn.draw(84);
 
-      RenderText(levelNames.get(i), x + 4, y - getFontHeight() / 2.0, color(0, 255, 255), TEXTH.LEFT, 0.5);
+      RenderText(levelFiles.get(i).getName(), x + 4, y - getFontHeight() / 2.0, color(0, 255, 255), TEXTH.LEFT, 0.5);
     }
 
     //
@@ -121,7 +133,7 @@ class Gui_LevelSelector extends GuiWindow
     else
       export_btn.draw(color(150));
 
-    RenderText("EXPORT LEVEL", export_btn.getPosition().x + 24, export_btn.getPosition().y - getFontHeight() / 2.0, color(255), TEXTH.LEFT, 0.5);
+    RenderText("EXPORT CUREENT LEVEL", export_btn.getPosition().x + 24, export_btn.getPosition().y - getFontHeight() / 2.0, color(255), TEXTH.LEFT, 0.5);
 
     //
     unbindViewport();

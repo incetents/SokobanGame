@@ -27,7 +27,7 @@ class Node
 {
   public BlockType type = BlockType.NOTHING;
   public Direction moveDirection = Direction.NONE;
-  public Sprite sprite;
+  public Sprite sprite = null;
   public Sprite[] spriteCorners = { null, null, null, null };
   public boolean multiSprite = false;
   public boolean solid = false;
@@ -38,6 +38,8 @@ class Node
     this.type = other.type;
     this.moveDirection = other.moveDirection;
     this.sprite = other.sprite;
+    for (int i = 0; i < 4; i++)
+      this.spriteCorners[i] = other.spriteCorners[i];
     this.solid = other.solid;
     this.pushable = other.pushable;
   }
@@ -46,6 +48,8 @@ class Node
     this.type = BlockType.NOTHING;
     this.moveDirection = Direction.NONE;
     this.sprite = null;
+    for (int i = 0; i < 4; i++)
+      this.spriteCorners[i] = null;
     this.solid = false;
     this.pushable = false;
   }
