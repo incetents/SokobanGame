@@ -64,10 +64,53 @@ Direction flipDirection(Direction direction)
   }
 }
 
+ArrayList<File> GetAllLevelFiles()
+{
+  //levelPaths
+  //println(dataPath("Levels/"));
+  ArrayList<File> levelFiles = new ArrayList<File>();
+  File[] files = listFiles(dataPath("Levels/"));
+  for (int i = 0; i < files.length; i++) {
+    File f = files[i];   
+    if (f.isFile() && validateExtension(f.getName(), ".level"))
+    {
+      levelFiles.add(f);
+    }
+    //f.isDirectory()
+    //f.length()
+  }
+  return levelFiles;
+}
+
 boolean fileExists(String path)
 {
   File file = new File(dataPath(path));
   return file.exists();
+}
+
+File changeExtension(File f, String newExtension) {
+  int i = f.getName().lastIndexOf('.');
+  if (i == -1)
+    return new File(f.getAbsolutePath() + newExtension);
+
+  String name = f.getName().substring(0, i);
+  return new File(f.getParent() + "/" + name + newExtension);
+}
+String getFilenameWithoutExtension(String name)
+{
+  int i = name.lastIndexOf('.');
+  if (i == -1)
+    return name;
+
+  return name.substring(0, i);
+}
+boolean validateExtension(String name, String extension)
+{
+  int i = name.lastIndexOf('.');
+  if (i == -1)
+    return false;
+
+  return name.substring(i, name.length()).equals(extension);
 }
 
 PVector GetNodeCenterFromIndex(int x, int y)

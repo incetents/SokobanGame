@@ -21,22 +21,11 @@ class Gui_LevelSelector extends GuiWindow
 
   public void refreshLevelSelection()
   {
-    levelFiles.clear();
+    levelFiles = GetAllLevelFiles();
     levelButtons.clear();
 
-    //levelPaths
-    //println(dataPath("Levels/"));
-    File[] files = listFiles(dataPath("Levels/"));
-    for (int i = 0; i < files.length; i++) {
-      File f = files[i];   
-      if (f.isFile())
-      {
-        levelFiles.add(f);
-        levelButtons.add(new Button(ButtonType.SQUARE));
-      }
-      //f.isDirectory()
-      //f.length()
-    }
+    for (int i = 0; i < levelFiles.size(); i++)
+      levelButtons.add(new Button(ButtonType.SQUARE));
   }
 
   public void update()
@@ -69,7 +58,7 @@ class Gui_LevelSelector extends GuiWindow
     // MiniBar
     if (export_btn.isReleased())
     {
-      selectOutput("Export Level", "ExportLevel", new File(dataPath("Levels")));
+      selectOutput("Export Level", "ExportLevel", new File(dataPath("Levels")+"/MyLevel"));
     }
 
     // Selection Area
@@ -93,10 +82,10 @@ class Gui_LevelSelector extends GuiWindow
       {
         String path = levelFiles.get(i).getPath();
         if (fileExists(path))
-          ImportLevel(path);          
+          ImportLevel(levelFiles.get(i));          
         else
           refreshLevelSelection();
-          
+
         return;
       }
     }
@@ -122,7 +111,8 @@ class Gui_LevelSelector extends GuiWindow
       else
         btn.draw(84);
 
-      RenderText(levelFiles.get(i).getName(), x + 4, y - getFontHeight() / 2.0, color(0, 255, 255), TEXTH.LEFT, 0.5);
+      String nameWithoutExtension = getFilenameWithoutExtension(levelFiles.get(i).getName());
+      RenderText(nameWithoutExtension, x + 4, y - getFontHeight() / 2.0, color(0, 255, 255), TEXTH.LEFT, 0.5);
     }
 
     //
@@ -133,7 +123,7 @@ class Gui_LevelSelector extends GuiWindow
     else
       export_btn.draw(color(150));
 
-    RenderText("EXPORT CUREENT LEVEL", export_btn.getPosition().x + 24, export_btn.getPosition().y - getFontHeight() / 2.0, color(255), TEXTH.LEFT, 0.5);
+    RenderText("EXPORT CURRENT LEVEL", export_btn.getPosition().x + 24, export_btn.getPosition().y - getFontHeight() / 2.0, color(255), TEXTH.LEFT, 0.5);
 
     //
     unbindViewport();

@@ -101,8 +101,7 @@ void setup()
   shader_transition.set("height", float(height));
 
   // Create Map
-  gameMap = new GameMap(levelLayout, 20);
-  gameMap.UpdateAllSprites();
+  LoadNextLevel();
 }
 
 
@@ -222,7 +221,7 @@ void update()
   }
 
   // Check if level is complete
-  if (!editorMode && gameMap.targetsFilled >= gameMap.targetCount)
+  if (!editorMode && gameMap.targetsFilled >= gameMap.targetCount && gameMap.targetCount > 0)
   {
     // Initial Level Complete
     if (!levelTransitionMode)
@@ -249,8 +248,7 @@ void update()
       levelTransitionTime = min(1.15, levelTransitionTime);
       if (levelTransitionTime >= 1.15)
       {
-        gameMap = new GameMap(levelLayout, 20);
-        gameMap.UpdateAllSprites();
+        LoadNextLevel();
 
         levelTransitionOutro = true;
       }
@@ -292,15 +290,20 @@ void update()
     levelTransitionOutro = false;
     //
 
-    // TEST
-    if (Input.GetKey('r'))
+    // Reset
+    if (Input.GetKeyDown('r'))
     {
-      gameMap = new GameMap(levelLayout, 20);
+      gameMap = new GameMap(gameMap.levelPath, gameMap.levelMap);
       gameMap.UpdateAllSprites();
       EmitterController.clear();
     }
+    // Debug
+    else if (Input.GetKeyDown('t'))
+    {
+      LoadNextLevel();
+    }
     //
-    else if (Input.GetKey(UP) && !Input.GetKey(DOWN))
+    if (Input.GetKey(UP) && !Input.GetKey(DOWN))
       Move(Direction.UP);
     else  if (!Input.GetKey(UP) && Input.GetKey(DOWN))
       Move(Direction.DOWN);
@@ -324,20 +327,50 @@ void update()
   Input.EndUpdate();
 }
 
-void ImportLevel(String path)
+void LoadNextLevel()
 {
-  if (fileExists(path))
+  ArrayList<File> levelFiles = GetAllLevelFiles();
+
+  // No levels available == Load hardcoded level
+  if (levelFiles.size() == 0)
   {
+    gameMap = new GameMap("", ErrorLevel);
+    gameMap.UpdateAllSprites();
+    return;
+  }
+
+  // If no level loaded or hardcoded level is used, load first one available
+  else if (gameMap == null || gameMap.levelPath.isEmpty())
+  {
+    ImportLevel(new File(levelFiles.get(0).getPath()));
+    return;
+  }
+
+  int indexMath = -2;
+  for (int i = 0; i < levelFiles.size(); i++)
+  {
+    if (i == indexMath + 1)
+    {
+      ImportLevel(new File(levelFiles.get(i).getPath()));
+      return;
+    } else if (levelFiles.get(i).getPath().equals(gameMap.levelPath))
+      indexMath = i;
+  }
+  // Load first level if reached last level
+  ImportLevel(new File(levelFiles.get(0).getPath()));
+}
+void ImportLevel(File file)
+{
+  if (fileExists(file.getPath()))
+  {
+    //println("Loading Level: " + file.getName());
     String newMapLayout = "";
-    int MapWidth = -1;
     //
-    BufferedReader reader = createReader(path);
+    BufferedReader reader = createReader(file.getPath());
     String line = null;
     try {
       while ((line = reader.readLine()) != null) {
         newMapLayout = newMapLayout + line + "\n";
-        if (MapWidth == -1)
-          MapWidth = line.length();
         //String[] pieces = split(line, TAB);
         //int x = int(pieces[0]);
         //int y = int(pieces[1]);
@@ -345,9 +378,8 @@ void ImportLevel(String path)
       }
       reader.close();
       //
-      gameMap = new GameMap(newMapLayout, MapWidth);
+      gameMap = new GameMap(file.getPath(), newMapLayout);
       gameMap.UpdateAllSprites();
-      EmitterController.clear();
     } 
     catch (IOException e) {
       e.printStackTrace();
@@ -361,6 +393,10 @@ void ExportLevel(File file)
   if (file == null)
     return;
 
+  // Make sure level auto-ends with .level extension
+  file = changeExtension(file, ".level");
+
+  //
   String desiredPath = file.getPath();
 
   // Write

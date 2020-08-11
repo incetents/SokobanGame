@@ -96,6 +96,11 @@ void draw()
       RenderText(msg1, xStart + 32 + padding * 2 + 2, 6, color(150), TEXTH.LEFT, 0.75);
       RenderText(msg2, xStart + 32 + padding * 2 + 24, 6, color(190), TEXTH.LEFT, 1);
     }
+    
+    // Level Name
+    {
+      RenderText(gameMap.levelName, width / 2.0, 2, color(200), TEXTH.CENTER, 1.0);
+    }
   }
 
   // UI Editor Info

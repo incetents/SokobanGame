@@ -1,16 +1,16 @@
 
 final int MinimumMaxSize = 2;
 
-String levelLayout =
-  "XXXX00XXXXXXXXXXXXXX"+
-  "XFF0F0000X0X0000000X"+
-  "XFFF0B000XXX000X000X"+
-  "X0F0000X000000X0X00X"+
-  "XFF000XXX00XX00X000X"+
-  "XF0BB00X00000000BT0X"+
-  "XFX0B00000000P0B0T0X"+
-  "XFFF000000000000000X"+
-  "XXXXXX0B0XXXXXXXXXXX";
+String ErrorLevel =
+  "XXXX00XXXXXXXXXXXXXX\n"+
+  "XFF0F0000X0X0000000X\n"+
+  "XFFF0B000XXX000X000X\n"+
+  "X0F0000X000000X0X00X\n"+
+  "XFF000XXX00XX00X000X\n"+
+  "XF0BB00X00000000BT0X\n"+
+  "XFX0B00000000P0B0T0X\n"+
+  "XFFF000000000000000X\n"+
+  "XXXXXX0B0XXXXXXXXXXX\n";
 
 HashMap<Character, BlockType> levelReader = new HashMap<Character, BlockType>()
 {
@@ -138,7 +138,7 @@ class GameLayer
     nodes = newNodes;
     m_height--;
   }
-  
+
   public void AddWidth()
   {
     Node[][] newNodes = new Node[m_width + 1][m_height];
@@ -197,6 +197,9 @@ class GameUndoEvent
 
 class GameMap
 {
+  public String levelName;
+  public String levelPath;
+  public String levelMap;
   public int m_width;
   public int m_height;
   public GameLayer bgLayer;
@@ -231,13 +234,13 @@ class GameMap
 
   public boolean SubWidth()
   {
-    if(m_width == 2)
+    if (m_width == 2)
       return false;
-    
+
     m_width--;
     bgLayer.SubWidth();
     entityLayer.SubWidth();
-    
+
     return true;
   }
   public boolean AddWidth()
@@ -245,19 +248,19 @@ class GameMap
     m_width++;
     bgLayer.AddWidth();
     entityLayer.AddWidth();
-    
+
     return true;
   }
-  
+
   public boolean SubHeight()
   {
-    if(m_height == 2)
+    if (m_height == 2)
       return false;
-    
+
     m_height--;
     bgLayer.SubHeight();
     entityLayer.SubHeight();
-    
+
     return true;
   }
   public boolean AddHeight()
@@ -265,17 +268,30 @@ class GameMap
     m_height++;
     bgLayer.AddHeight();
     entityLayer.AddHeight();
-    
+
     return true;
   }
 
-  public GameMap(String levelMap, int w)
+  public GameMap(String _levelPath, String _levelMap)
   {
-    int h = levelMap.length() / w;
-    m_width = w;
-    m_height = h;
-    bgLayer = new GameLayer(w, h);
-    entityLayer = new GameLayer(w, h);
+    levelName = getFilenameWithoutExtension(new File(_levelPath).getName());
+    levelPath = _levelPath;
+    levelMap = _levelMap;
+
+    // Find first \n to find width
+    int i = _levelMap.indexOf('\n');
+    if (i == -1)
+    {
+      m_width = _levelMap.length();
+      m_height = 1;
+    } else
+    {
+      m_width = i;
+      m_height = levelMap.length() / (i + 1);
+    }
+
+    bgLayer = new GameLayer(m_width, m_height);
+    entityLayer = new GameLayer(m_width, m_height);
 
     int stringIndex = 0;
 
@@ -285,8 +301,10 @@ class GameMap
       for (int x = 0; x < m_width; x++)
       {
         // Skip characters that are not important
-        while (levelMap.charAt(stringIndex) == '\n')
+        while (stringIndex < levelMap.length() && levelMap.charAt(stringIndex) == '\n')
           stringIndex++;
+        if (stringIndex >= levelMap.length())
+          break;
 
         // Interpret map for type
         char c = levelMap.charAt(stringIndex);
@@ -307,6 +325,8 @@ class GameMap
     AdjustBlockSize(this);
     // Move camera to center
     camera.setPositionToCenterOfMap(this);
+    //
+    EmitterController.clear();
   }
 
   public void UpdateAllSprites()

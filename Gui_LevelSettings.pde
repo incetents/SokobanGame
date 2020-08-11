@@ -45,26 +45,26 @@ class Gui_LevelSettings extends GuiWindow
 
     if (levelWidth_Sub_Btn.isReleased())
     {
-      if(gameMap.SubWidth())
-      regenMap = true;
+      if (gameMap.SubWidth())
+        regenMap = true;
     }
     //
     else if (levelWidth_Add_Btn.isReleased())
     {
-      if(gameMap.AddWidth())
-      regenMap = true;
+      if (gameMap.AddWidth())
+        regenMap = true;
     }
     //
     else if (levelHeight_Sub_Btn.isReleased())
     {
-      if(gameMap.SubHeight())
-      regenMap = true;
+      if (gameMap.SubHeight())
+        regenMap = true;
     }
     //
     else if (levelHeight_Add_Btn.isReleased())
     {
-      if(gameMap.AddHeight())
-      regenMap = true;
+      if (gameMap.AddHeight())
+        regenMap = true;
     }
 
     if (regenMap)
