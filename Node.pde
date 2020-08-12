@@ -6,8 +6,11 @@ public enum BlockType
     WALL, 
     PLAYER, 
     BLOCK, 
+    BLOCK_H, 
+    BLOCK_V, 
     FLOOR, 
-    TARGET
+    TARGET, 
+    SIGN
 }
 //
 class MovingNode
@@ -29,29 +32,38 @@ class Node
   public Direction moveDirection = Direction.NONE;
   public Sprite sprite = null;
   public Sprite[] spriteCorners = { null, null, null, null };
+  public int flag = 0;
   public boolean multiSprite = false;
   public boolean solid = false;
-  public boolean pushable = false;
+  public boolean pushable_h = false;
+  public boolean pushable_v = false;
+  public boolean targetPiece = false;
 
   public void copy(Node other)
   {
     this.type = other.type;
     this.moveDirection = other.moveDirection;
     this.sprite = other.sprite;
+    this.flag = other.flag;
     for (int i = 0; i < 4; i++)
       this.spriteCorners[i] = other.spriteCorners[i];
     this.solid = other.solid;
-    this.pushable = other.pushable;
+    this.pushable_h = other.pushable_h;
+    this.pushable_v = other.pushable_v;
+    this.targetPiece = other.targetPiece;
   }
   public void clear()
   {
     this.type = BlockType.NOTHING;
     this.moveDirection = Direction.NONE;
     this.sprite = null;
+    this.flag = 0;
     for (int i = 0; i < 4; i++)
       this.spriteCorners[i] = null;
     this.solid = false;
-    this.pushable = false;
+    this.pushable_h = false;
+    this.pushable_v = false;
+    this.targetPiece = false;
   }
 
   public void SetType(BlockType type)
@@ -66,9 +78,26 @@ class Node
     case WALL:
       this.solid = true;
       break;
-    case BLOCK:
+    case BLOCK_H:
+      this.pushable_h = true;
       this.solid = true;
-      this.pushable = true;
+      this.targetPiece = true;
+      break;
+    case BLOCK_V:
+      this.pushable_v = true;
+      this.solid = true;
+      this.targetPiece = true;
+      break;
+    case PLAYER:
+      this.pushable_h = true;
+      this.pushable_v = true;
+      this.solid = true;
+      break;
+    case BLOCK:
+      this.pushable_h = true;
+      this.pushable_v = true;
+      this.solid = true;
+      this.targetPiece = true;
       break;
     }
   }
@@ -301,32 +330,46 @@ class Node
         return SpriteMap.get("block_2");
       else
         return SpriteMap.get("block_1");
+    case BLOCK_H:
+      // Check if above target
+      if (gameMap.bgLayer.GetNode(x, y).type == BlockType.TARGET)
+        return SpriteMap.get("block_h_2");
+      else
+        return SpriteMap.get("block_h_1");
+    case BLOCK_V:
+      // Check if above target
+      if (gameMap.bgLayer.GetNode(x, y).type == BlockType.TARGET)
+        return SpriteMap.get("block_v_2");
+      else
+        return SpriteMap.get("block_v_1");
     case PLAYER:
-      switch(lastPlayerDirection)
+      switch(flag)
       {
       default:
-      case RIGHT:
+      case 4:
         if (TickCounter % 2 == 0)
           return SpriteMap.get("guy_1_right");
         else
           return SpriteMap.get("guy_1_right2");
-      case LEFT:
+      case 3:
         if (TickCounter % 2 == 0)
           return SpriteMap.get("guy_1_left");
         else
           return SpriteMap.get("guy_1_left2");
-      case UP:
+      case 1:
         if (TickCounter % 2 == 0)
           return SpriteMap.get("guy_1_up");
         else
           return SpriteMap.get("guy_1_up2");
-      case DOWN:
+      case 2:
         if (TickCounter % 2 == 0)
           return SpriteMap.get("guy_1_down");
         else
           return SpriteMap.get("guy_1_down2");
       }
 
+    case SIGN:
+      return SpriteMap.get("sign_1");
     case TARGET:
       return SpriteMap.get("target_1");
 

@@ -5,21 +5,8 @@ class Camera
 
   public void setPositionToCenterOfMap(GameMap _gameMap)
   {
-    if (_gameMap.m_width * BlockSize >= width)
-    {
-      // Vertical Fix
-      float y_offset = height - (BlockSize * _gameMap.m_height);
-      position.x = 0;
-      position.y = (round(y_offset / 2.0));
-    }
-    //
-    else
-    {
-      // Horizontal Fix
-      float x_offset = width - (BlockSize * _gameMap.m_width);
-      position.x = (round(x_offset / 2.0));
-      position.y = 0;
-    }
+    position.y = (height - (BlockSize * _gameMap.m_height)) / 2.0;
+    position.x = (width - (BlockSize * _gameMap.m_width)) / 2.0;
   }
 
   public void setPosition(float _x, float _y)

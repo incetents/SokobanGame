@@ -47,6 +47,22 @@ public PVector GetDirectionOffset(Direction direction)
     return DirectionOffsetList[4];
   }
 }
+int getFlagFromDirection(Direction direction)
+{
+  switch(direction)
+  {
+  default:
+    return 0;
+  case UP:
+    return 1;
+  case DOWN:
+    return 2;
+  case LEFT:
+    return 3;
+  case RIGHT:
+    return 4;
+  }
+}
 
 Direction flipDirection(Direction direction)
 {

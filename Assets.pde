@@ -27,6 +27,18 @@ void SetCurrentFont(String name)
 String PNG_EXTENSION = ".png";
 
 // Textures
+class Texture
+{
+  public PImage image;
+  
+  public Texture(String path)
+  {
+    image = loadImage(path);
+    if(image == null)
+      println("MISSING PATH: " + path);
+  }
+}
+//
 HashMap<String, Texture> TextureMap = new HashMap<String, Texture>();
 public Texture GetTexture(String name)
 {
@@ -36,7 +48,27 @@ public Texture GetTexture(String name)
   return TextureMap.get(name);
 }
 
-// Sprites
+//  Sprites
+class Sprite
+{
+  public PImage image;
+  public boolean flipHorizontally;
+  public boolean flipVertically;
+
+  Sprite(Texture tex, boolean flipH, boolean flipV)
+  {
+    if (tex == null)
+    {
+      println("Error loading null texture for sprite");
+      image = null;
+    } else
+      image = tex.image;
+
+    flipHorizontally = flipH;
+    flipVertically = flipV;
+  }
+}
+//
 HashMap<String, Sprite> SpriteMap = new HashMap<String, Sprite>();
 
 // Load
@@ -44,9 +76,12 @@ void SetupAssets()
 {
 
   // Create All Fonts
-  FontMap.put("8bit", new Font("Fonts/8bit16.ttf", 30));
+  FontMap.put("8bit_30", new Font("Fonts/8bit16.ttf", 30));
+  FontMap.put("8bithud", new Font("Fonts/8-bit-hud.ttf", 20));
 
   // Create all Sprites
+  SpriteMap.put("title_card", new Sprite(GetTexture("title_card"), false, false));
+  
   SpriteMap.put("question_mark", new Sprite(GetTexture("question_mark"), false, false));
 
   SpriteMap.put("undo_icon", new Sprite(GetTexture("undo_icon"), false, false));
@@ -55,6 +90,12 @@ void SetupAssets()
 
   SpriteMap.put("block_1", new Sprite(GetTexture("block_1"), false, false));
   SpriteMap.put("block_2", new Sprite(GetTexture("block_2"), false, false));
+  
+  SpriteMap.put("block_h_1", new Sprite(GetTexture("block_h_1"), false, false));
+  SpriteMap.put("block_h_2", new Sprite(GetTexture("block_h_2"), false, false));
+  
+  SpriteMap.put("block_v_1", new Sprite(GetTexture("block_v_1"), false, false));
+  SpriteMap.put("block_v_2", new Sprite(GetTexture("block_v_2"), false, false));
 
   SpriteMap.put("guy_1_right", new Sprite(GetTexture("guy_1"), false, false));
   SpriteMap.put("guy_1_right2", new Sprite(GetTexture("guy_2"), false, false));

@@ -10,12 +10,19 @@ float BlockSizeHalf;
 float BlockSizeQuarter;
 public void AdjustBlockSize(GameMap _gameMap)
 {
-  // Check Vertical Space
-  BlockSize = (height / _gameMap.m_height);
-  // Is Horizontal stretching off screen
-  if (_gameMap.m_width * BlockSize > width)
-    BlockSize = (width / _gameMap.m_width);
-
+  if (_gameMap.m_height == 0 || _gameMap.m_width == 0)
+  {
+    BlockSize = 0;
+  }
+  //
+  else
+  {
+    // Check Vertical Space
+    BlockSize = (height / _gameMap.m_height);
+    // Is Horizontal stretching off screen
+    if (_gameMap.m_width * BlockSize > width)
+      BlockSize = (width / _gameMap.m_width);
+  }
   //
   BlockSizeHalf = BlockSize / 2.0;
   BlockSizeQuarter = BlockSizeHalf / 2.0;
@@ -36,6 +43,7 @@ boolean levelTransitionOutro = false;
 float levelTransitionTime = 0.0f;
 float levelTransitionIntroSpeed = 1.25f;
 float levelTransitionOutroSpeed = 1.75f;
+boolean levelTransitionIsReset = false;
 
 // Undo
 boolean doingUndo = false;
@@ -47,11 +55,14 @@ int lastTime = 0;
 int delta = 0;
 double deltaTime = 1;
 
+// Colors
+final color messageColor = color(250, 172, 160); //218, 85, 64
+
 // Block Index for what mouse is hovering
 PVector selectionPoint = new PVector(0, 0);
 
 // Editor Info
-boolean editorMode = true;
+boolean editorMode = false;
 BlockType editorBlockDraw = BlockType.WALL;
 int editorBlockDrawIndex = 0;
 ArrayList<BlockType> editorBlockDrawList = new ArrayList<BlockType>() {
@@ -60,12 +71,12 @@ ArrayList<BlockType> editorBlockDrawList = new ArrayList<BlockType>() {
     add(BlockType.FLOOR);
     add(BlockType.TARGET);
     add(BlockType.BLOCK);
+    add(BlockType.BLOCK_H);
+    add(BlockType.BLOCK_V);
     add(BlockType.PLAYER);
+    add(BlockType.SIGN);
   }
 };
-
-//
-Direction lastPlayerDirection = Direction.RIGHT; 
 
 //
 PShader shader_transition;
@@ -93,7 +104,7 @@ void setup()
   imageMode(CENTER);
   // Setup Assets
   SetupAssets();
-  SetCurrentFont("8bit");
+  SetCurrentFont("8bit_30");
 
   // Shaders
   shader_transition = loadShader("Shaders/transitionEffect_Frag.glsl", "Shaders/transitionEffect_Vert.glsl");
@@ -101,232 +112,290 @@ void setup()
   shader_transition.set("height", float(height));
 
   // Create Map
-  LoadNextLevel();
+  //LoadNextLevel();
 }
 
 
 void update()
 {
-  // Gui - Level Selector
-  if (editorMode)
+  // Game
+  if (gameMap == null)
   {
-    if (Input.GetKeyDown('1'))
+    if (Input.GetKeyDown(ENTER))
+      LoadNextLevel();
+  } else
+  {
+
+    // Gui - Level Selector
+    if (editorMode)
     {
-      if (currentGuiWindow == null)
+      if (Input.GetKeyDown('1'))
       {
-        currentGuiWindow = gui_levelSelector;
-        gui_levelSelector.refreshLevelSelection();
-      } else
-        currentGuiWindow = null;
-    } else if (Input.GetKeyDown('2'))
-    {
-      if (currentGuiWindow == null)
-      {
-        currentGuiWindow = gui_levelSettings;
-      } else
-        currentGuiWindow = null;
-    }
-  }
-
-  // Hovered Button
-  hoveredButton = null;
-  if (!mousePressed)
-    pressedButton = null;
-  // GUI
-  if (currentGuiWindow != null)
-  {
-    if (currentGuiWindow.close)
-    {
-      currentGuiWindow = null;
-      draggedButton = null;
-    } else
-    {
-      currentGuiWindow.update();
-
-      // Update Input
-      Input.EndUpdate();
-      return;
-    }
-  }
-
-  // Editor Mode
-  if (Input.GetKeyDown('x'))
-    editorMode = !editorMode;
-  if (editorMode)
-  {
-    // Block for Drawing
-
-    // Index Modification
-    if (Input.GetScrollDelta() == -1.0)
-      editorBlockDrawIndex++;
-    else  if (Input.GetScrollDelta() == 1.0)
-      editorBlockDrawIndex--;
-
-    if (editorBlockDrawIndex >= editorBlockDrawList.size())
-      editorBlockDrawIndex = 0;
-    else if (editorBlockDrawIndex < 0)
-      editorBlockDrawIndex = editorBlockDrawList.size() - 1;
-
-    editorBlockDraw = editorBlockDrawList.get(editorBlockDrawIndex);
-  }
-
-
-
-  // Update Selection
-  if (editorMode)
-  {
-    // Correct X/Y
-    selectionPoint.x = mouseX - camera.getX();
-    selectionPoint.y = mouseY - camera.getY();
-    // Convert to Index
-    selectionPoint.x = floor(selectionPoint.x / BlockSize);
-    selectionPoint.y = floor(selectionPoint.y / BlockSize);
-
-    // Check if selection is on the board
-    if (gameMap.IsInsideBoard(selectionPoint.x, selectionPoint.y))
-    {
-      int x = int(selectionPoint.x);
-      int y = int(selectionPoint.y);
-      if (Input.GetMouseButton(LEFT))
-      {
-        // Entity Layer
-        if (
-          editorBlockDraw == BlockType.BLOCK ||
-          editorBlockDraw == BlockType.PLAYER
-          )
-          gameMap.entityLayer.SetBlock(x, y, editorBlockDraw);
-        // BG Layer
+        if (currentGuiWindow == null)
+        {
+          currentGuiWindow = gui_levelSelector;
+          currentGuiWindow.close = false;
+          gui_levelSelector.refreshLevelSelection();
+        }
+        //
         else
-          gameMap.bgLayer.SetBlock(x, y, editorBlockDraw);
-
-        // Considerations
-        if (editorBlockDraw == BlockType.TARGET)
-          gameMap.RecalculateTargetCount();
+          currentGuiWindow = null;
       }
       //
-      else if (Input.GetMouseButton(RIGHT))
+      else if (Input.GetKeyDown('2'))
       {
-        boolean MapChanged = false;
-        // Considerations before delete
-        if (gameMap.bgLayer.nodes[x][y].type == BlockType.TARGET)
-          MapChanged = true;
-
-        gameMap.bgLayer.SetBlock(x, y, BlockType.NOTHING);
-        gameMap.entityLayer.SetBlock(x, y, BlockType.NOTHING);
-
-        if (MapChanged)
-          gameMap.RecalculateTargetCount();
+        if (currentGuiWindow == null)
+        {
+          currentGuiWindow = gui_levelSettings;
+          currentGuiWindow.close = false;
+        }
+        //
+        else
+          currentGuiWindow = null;
       }
     }
-  }
 
-  // Check if level is complete
-  if (!editorMode && gameMap.targetsFilled >= gameMap.targetCount && gameMap.targetCount > 0)
-  {
-    // Initial Level Complete
-    if (!levelTransitionMode)
+    // Hovered Button
+    hoveredButton = null;
+    if (!mousePressed)
+      pressedButton = null;
+    // GUI
+    if (currentGuiWindow != null)
     {
-      EmitterController.add(new Emitter(
-        width / 2.0, height / 2.0, // X, Y
-        0.75, 26, // Lifetime, Count
-        color(255), color(10), // Color (start/end)
-        50, 0, // Size (start/end)
-        6, 10, 0.2, // SpeedMin, SpeedMax, Drag
-        new PVector(0, 1), 360 // Direction, AngleFuzz
-        ));
+      if (currentGuiWindow.close)
+      {
+        currentGuiWindow = null;
+        draggedButton = null;
+      } else
+      {
+        currentGuiWindow.update();
+
+        // Update Input
+        Input.EndUpdate();
+        return;
+      }
     }
 
-    levelTransitionMode = true;
-  }
-
-  // Transition Mode Crap
-  if (levelTransitionMode)
-  {
-    if (!levelTransitionOutro)
+    // Editor Mode
+    if (Input.GetKeyDown('x'))
     {
-      levelTransitionTime += deltaTime * levelTransitionIntroSpeed;
-      levelTransitionTime = min(1.15, levelTransitionTime);
-      if (levelTransitionTime >= 1.15)
+      editorMode = !editorMode;
+      gameMap.SetReadingMessage(false);
+
+      if (!editorMode)
+      {
+        currentGuiWindow = null;
+        gameMap.RecalculateTargetCount();
+      }
+    }
+    if (editorMode)
+    {
+      // Block for Drawing
+      //
+      // Index Modification
+      if (Input.GetScrollDelta() == -1.0)
+        editorBlockDrawIndex++;
+      else  if (Input.GetScrollDelta() == 1.0)
+        editorBlockDrawIndex--;
+
+      if (editorBlockDrawIndex >= editorBlockDrawList.size())
+        editorBlockDrawIndex = 0;
+      else if (editorBlockDrawIndex < 0)
+        editorBlockDrawIndex = editorBlockDrawList.size() - 1;
+
+      editorBlockDraw = editorBlockDrawList.get(editorBlockDrawIndex);
+
+
+      // Update Selection
+      //
+      // Correct X/Y
+      selectionPoint.x = mouseX - camera.getX();
+      selectionPoint.y = mouseY - camera.getY();
+      // Convert to Index
+      selectionPoint.x = floor(selectionPoint.x / BlockSize);
+      selectionPoint.y = floor(selectionPoint.y / BlockSize);
+
+      // Check if selection is on the board
+      if (gameMap.IsInsideBoard(selectionPoint.x, selectionPoint.y))
+      {
+        int x = int(selectionPoint.x);
+        int y = int(selectionPoint.y);
+        if (Input.GetMouseButton(LEFT))
+        {
+          // Remove Undos
+          gameMap.ClearUndos();
+
+          // Entity Layer
+          if (getLayerType(editorBlockDraw))
+          {
+            gameMap.entityLayer.SetBlock(x, y, editorBlockDraw);
+            gameMap.bgLayer.SetBlock(x, y, BlockType.NOTHING);
+          }
+          // BG Layer
+          else
+            gameMap.bgLayer.SetBlock(x, y, editorBlockDraw);
+
+          // Considerations
+          if (editorBlockDraw == BlockType.TARGET)
+            gameMap.RecalculateTargetCount();
+        }
+        //
+        else if (Input.GetMouseButton(RIGHT))
+        {
+          // Remove Undos
+          gameMap.ClearUndos();
+
+          boolean MapChanged = false;
+          // Considerations before delete
+          if (gameMap.bgLayer.nodes[x][y].type == BlockType.TARGET)
+            MapChanged = true;
+
+          gameMap.bgLayer.SetBlock(x, y, BlockType.NOTHING);
+          gameMap.entityLayer.SetBlock(x, y, BlockType.NOTHING);
+
+          if (MapChanged)
+            gameMap.RecalculateTargetCount();
+        }
+      }
+    }
+
+    // Update Map
+    if (!editorMode)
+      gameMap.update();
+
+    // Check if level is complete
+    if (!editorMode && gameMap.targetsFilled >= gameMap.targetCount && gameMap.targetCount > 0)
+    {
+      // Initial Level Complete
+      if (!levelTransitionMode)
+      {
+        EmitterController.add(new Emitter(
+          width / 2.0, height / 2.0, // X, Y
+          0.75, 26, // Lifetime, Count
+          color(255), color(10), // Color (start/end)
+          50, 0, // Size (start/end)
+          6, 10, 0.2, // SpeedMin, SpeedMax, Drag
+          new PVector(0, 1), 360 // Direction, AngleFuzz
+          ));
+      }
+
+      levelTransitionMode = true;
+    }
+
+    // Transition Mode Crap
+    if (levelTransitionMode)
+    {
+      if (!levelTransitionOutro)
+      {
+        levelTransitionTime += deltaTime * levelTransitionIntroSpeed;
+        levelTransitionTime = min(1.15, levelTransitionTime);
+        if (levelTransitionTime >= 1.15)
+        {
+          // Reset
+          if (levelTransitionIsReset)
+          {
+            ReloadLevel();
+            levelTransitionIsReset = false;
+          }
+          // Next Level
+          else
+          {
+            LoadNextLevel();
+          }
+
+          levelTransitionOutro = true;
+        }
+      } else
+      {
+        levelTransitionTime -= deltaTime * levelTransitionOutroSpeed;
+        levelTransitionTime = max(0, levelTransitionTime);
+        if (levelTransitionTime <= 0.0)
+        {
+          levelTransitionOutro = false;
+          levelTransitionMode = false;
+        }
+      }
+    }
+    // Animation Crap
+    else if (animationMode)
+    {
+      // Close Message
+      gameMap.SetReadingMessage(false);
+
+      if (doingUndo)
+        animationTime += deltaTime * animationUndoSpeed;
+      else
+        animationTime += deltaTime * animationSpeed;
+
+      animationTime = min(1, animationTime);
+
+      // Check end of transition mode
+      if (animationTime >= 1.0f)
+      {
+        animationMode = false;
+        animationTime = 0.0;
+        gameMap.MovementTick(!doingUndo);
+      }
+    }
+    // Await input from player
+    else
+    {
+      // Reset flags
+      levelTransitionTime = 0.0;
+      animationTime = 0.0;
+      levelTransitionOutro = false;
+      //
+
+      // Reset
+      if (Input.GetKeyDown('r'))
+      {
+        levelTransitionMode = true;
+        levelTransitionIsReset = true;
+      }
+      // Debug
+      else if (Input.GetKeyDown('t'))
       {
         LoadNextLevel();
-
-        levelTransitionOutro = true;
       }
-    } else
-    {
-      levelTransitionTime -= deltaTime * levelTransitionOutroSpeed;
-      levelTransitionTime = max(0, levelTransitionTime);
-      if (levelTransitionTime <= 0.0)
+      // Read Message
+      else if (Input.GetKeyDown(ENTER))
       {
-        levelTransitionOutro = false;
-        levelTransitionMode = false;
+        gameMap.SetReadingMessage(!gameMap.IsReadingMessage());
+      }
+      //
+      if (!editorMode)
+      {
+        if (Input.GetKey(UP) && !Input.GetKey(DOWN))
+          Move(Direction.UP);
+        else  if (!Input.GetKey(UP) && Input.GetKey(DOWN))
+          Move(Direction.DOWN);
+        else  if (Input.GetKey(LEFT) && !Input.GetKey(RIGHT))
+          Move(Direction.LEFT);
+        else  if (Input.GetKey(RIGHT) && !Input.GetKey(LEFT))
+          Move(Direction.RIGHT);
+        // undo
+        else  if (Input.GetKey('z'))
+        {
+          Undo();
+        }
       }
     }
-  }
-  // Animation Crap
-  else if (animationMode)
-  {
-    if (doingUndo)
-      animationTime += deltaTime * animationUndoSpeed;
-    else
-      animationTime += deltaTime * animationSpeed;
-
-    animationTime = min(1, animationTime);
-
-    // Check end of transition mode
-    if (animationTime >= 1.0f)
-    {
-      animationMode = false;
-      animationTime = 0.0;
-      gameMap.MovementTick(!doingUndo);
-    }
-  }
-  // Await input from player
-  else
-  {
-    // Reset flags
-    levelTransitionTime = 0.0;
-    animationTime = 0.0;
-    levelTransitionOutro = false;
     //
 
-    // Reset
-    if (Input.GetKeyDown('r'))
-    {
-      gameMap = new GameMap(gameMap.levelPath, gameMap.levelMap);
-      gameMap.UpdateAllSprites();
-      EmitterController.clear();
-    }
-    // Debug
-    else if (Input.GetKeyDown('t'))
-    {
-      LoadNextLevel();
-    }
-    //
-    if (Input.GetKey(UP) && !Input.GetKey(DOWN))
-      Move(Direction.UP);
-    else  if (!Input.GetKey(UP) && Input.GetKey(DOWN))
-      Move(Direction.DOWN);
-    else  if (Input.GetKey(LEFT) && !Input.GetKey(RIGHT))
-      Move(Direction.LEFT);
-    else  if (Input.GetKey(RIGHT) && !Input.GetKey(LEFT))
-      Move(Direction.RIGHT);
-
-    // undo
-    else  if (Input.GetKey('z'))
-    {
-      Undo();
-    }
+    // Emitters
+    EmitterController.update();
   }
-  //
-
-  // Emitters
-  EmitterController.update();
 
   // Update Input
   Input.EndUpdate();
 }
 
+void ReloadLevel()
+{
+  gameMap = new GameMap(gameMap.levelPath, gameMap.levelMap, gameMap.levelMessage);
+  gameMap.UpdateAllSprites();
+  EmitterController.clear();
+}
 void LoadNextLevel()
 {
   ArrayList<File> levelFiles = GetAllLevelFiles();
@@ -334,7 +403,7 @@ void LoadNextLevel()
   // No levels available == Load hardcoded level
   if (levelFiles.size() == 0)
   {
-    gameMap = new GameMap("", ErrorLevel);
+    gameMap = new GameMap("", ErrorLevel, "NULL");
     gameMap.UpdateAllSprites();
     return;
   }
@@ -365,12 +434,19 @@ void ImportLevel(File file)
   {
     //println("Loading Level: " + file.getName());
     String newMapLayout = "";
+    String newMapMessage = "";
     //
     BufferedReader reader = createReader(file.getPath());
     String line = null;
     try {
       while ((line = reader.readLine()) != null) {
-        newMapLayout = newMapLayout + line + "\n";
+        if (newMapMessage.isEmpty())
+        {
+          String[] messageSplit = split(line, '\\');
+          for (int i = 0; i < messageSplit.length; i++)
+            newMapMessage += messageSplit[i] + '\n';
+        } else
+          newMapLayout = newMapLayout + line + "\n";
         //String[] pieces = split(line, TAB);
         //int x = int(pieces[0]);
         //int y = int(pieces[1]);
@@ -378,7 +454,7 @@ void ImportLevel(File file)
       }
       reader.close();
       //
-      gameMap = new GameMap(file.getPath(), newMapLayout);
+      gameMap = new GameMap(file.getPath(), newMapLayout, newMapMessage);
       gameMap.UpdateAllSprites();
     } 
     catch (IOException e) {
@@ -401,6 +477,8 @@ void ExportLevel(File file)
 
   // Write
   PrintWriter output = createWriter(desiredPath);
+  output.println("Insert Message Here\\Line2\\Line3");
+
   for (int y = 0; y < gameMap.m_height; y++)
   {
     for (int x = 0; x < gameMap.m_width; x++)
@@ -442,6 +520,7 @@ void Undo()
     int x = int(n.position.x);
     int y = int(n.position.y);
 
+    gameMap.entityLayer.nodes[x][y].flag = n.node.flag;
     gameMap.entityLayer.nodes[x][y].moveDirection = flipDirection(n.node.moveDirection);
   }
 
@@ -451,13 +530,10 @@ void Undo()
   gameMap.UndoEvents.remove(undoEvent);
 }
 
-
 //
 void Move(Direction direction)
 {
   doingUndo = false;
-  //
-  lastPlayerDirection = direction;
   //
 
   // Target Direction
@@ -473,6 +549,7 @@ void Move(Direction direction)
       // Player found
       if (gameMap.entityLayer.nodes[x][y].type == BlockType.PLAYER && gameMap.IsInsideBoard(x+OffsetX, y+OffsetY))
       {
+        gameMap.entityLayer.nodes[x][y].flag = getFlagFromDirection(direction);
         // Update Player Sprite
         gameMap.entityLayer.nodes[x][y].UpdateSprite(x, y);
 
@@ -487,10 +564,16 @@ void Move(Direction direction)
           animationMode = true;
         }
         // Check if next board is moveable
-        else if (gameMap.entityLayer.nodes[x+OffsetX][y+OffsetY].pushable)
+        else if (
+          (gameMap.entityLayer.nodes[x+OffsetX][y+OffsetY].pushable_h && (direction == Direction.LEFT || direction == Direction.RIGHT)) ||
+          (gameMap.entityLayer.nodes[x+OffsetX][y+OffsetY].pushable_v && (direction == Direction.UP || direction == Direction.DOWN))
+          )
         {
           // CanMove
           boolean CanMove = true;
+          // Direction check
+          boolean h_mode = (gameMap.entityLayer.nodes[x+OffsetX][y+OffsetY].pushable_h && (direction == Direction.LEFT || direction == Direction.RIGHT));
+          boolean v_mode = (gameMap.entityLayer.nodes[x+OffsetX][y+OffsetY].pushable_v && (direction == Direction.UP || direction == Direction.DOWN));
 
           // Attempt to keep moving
           PVector futureCheck = DirectionOffset.copy();
@@ -506,7 +589,8 @@ void Move(Direction direction)
           {
             // Check if allowed to make an additional hop
             if (
-              gameMap.entityLayer.nodes[x+int(futureCheck.x)][y+int(futureCheck.y)].pushable
+              (h_mode && gameMap.entityLayer.nodes[x+int(futureCheck.x)][y+int(futureCheck.y)].pushable_h) ||
+              (v_mode && gameMap.entityLayer.nodes[x+int(futureCheck.x)][y+int(futureCheck.y)].pushable_v)
               )
             {
               futureCheck.add(DirectionOffset);
@@ -539,6 +623,7 @@ void Move(Direction direction)
             animationMode = true;
           }
         }
+
         // If Animation Mode occurs, player trail
         if (animationMode)
         {
@@ -546,12 +631,14 @@ void Move(Direction direction)
           PVector pos = GetNodeCenterFromIndex(x, y);
           PVector vel = GetDirectionOffset(flipDirection(direction));
 
+          float sizeT = BlockSize / 54.0;
+
           EmitterController.add(new Emitter(
             pos.x, pos.y, // X, Y
             0.35, 6, // Lifetime, Count
             color(255), color(10), // Color (start/end)
-            10, 0, // Size (start/end)
-            3, 5, 0.2, // SpeedMin, SpeedMax, Drag
+            10.0 * sizeT, 0, // Size (start/end)
+            3 * sizeT, 5 * sizeT, 0.2, // SpeedMin, SpeedMax, Drag
             vel, 45 // Direction, AngleFuzz
             ));
         }

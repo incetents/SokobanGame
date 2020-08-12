@@ -104,12 +104,7 @@ class Gui_LevelSelector extends GuiWindow
       float y = foreground.position.y + i * 24;
 
       Button btn = levelButtons.get(i);
-      if (btn.isPressed())
-        btn.draw(124);
-      else if (btn.isHovered())
-        btn.draw(0);
-      else
-        btn.draw(84);
+      btn.draw(84, 0);
 
       String nameWithoutExtension = getFilenameWithoutExtension(levelFiles.get(i).getName());
       RenderText(nameWithoutExtension, x + 4, y - getFontHeight() / 2.0, color(0, 255, 255), TEXTH.LEFT, 0.5);
@@ -118,10 +113,7 @@ class Gui_LevelSelector extends GuiWindow
     //
     viewport_miniBar.bind();
 
-    if (export_btn.isHovered() && !mousePressed)
-      export_btn.draw(color(255));
-    else
-      export_btn.draw(color(150));
+    export_btn.draw(color(150), color(255));
 
     RenderText("EXPORT CURRENT LEVEL", export_btn.getPosition().x + 24, export_btn.getPosition().y - getFontHeight() / 2.0, color(255), TEXTH.LEFT, 0.5);
 

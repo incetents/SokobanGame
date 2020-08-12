@@ -1,16 +1,14 @@
 
-final int MinimumMaxSize = 2;
-
 String ErrorLevel =
-  "XXXX00XXXXXXXXXXXXXX\n"+
-  "XFF0F0000X0X0000000X\n"+
-  "XFFF0B000XXX000X000X\n"+
-  "X0F0000X000000X0X00X\n"+
-  "XFF000XXX00XX00X000X\n"+
-  "XF0BB00X00000000BT0X\n"+
-  "XFX0B00000000P0B0T0X\n"+
-  "XFFF000000000000000X\n"+
-  "XXXXXX0B0XXXXXXXXXXX\n";
+  "XXXXXXXXXXXXXXXXXXXX\n"+
+  "X000000000000000000X\n"+
+  "X000000000000000000X\n"+
+  "X000000000000000000X\n"+
+  "X000000000P00000000X\n"+
+  "X000000000000000000X\n"+
+  "X000000000000000000X\n"+
+  "X000000000000000000X\n"+
+  "XXXXXXXXXXXXXXXXXXXX\n";
 
 HashMap<Character, BlockType> levelReader = new HashMap<Character, BlockType>()
 {
@@ -19,10 +17,29 @@ HashMap<Character, BlockType> levelReader = new HashMap<Character, BlockType>()
     put('X', BlockType.WALL);
     put('P', BlockType.PLAYER);
     put('B', BlockType.BLOCK);
+    put('H', BlockType.BLOCK_H);
+    put('V', BlockType.BLOCK_V);
     put('F', BlockType.FLOOR);
     put('T', BlockType.TARGET);
+    put('S', BlockType.SIGN);
   }
 };
+HashMap<BlockType, Boolean> layerType = new HashMap<BlockType, Boolean>()
+{
+  {
+    put(BlockType.PLAYER, true);
+    put(BlockType.BLOCK, true);
+    put(BlockType.BLOCK_H, true);
+    put(BlockType.BLOCK_V, true);
+  }
+};
+public Boolean getLayerType(BlockType type)
+{
+  if (layerType.get(type) == null)
+    return false;
+
+  return true;
+}
 HashMap<BlockType, Character> levelWriter = new HashMap<BlockType, Character>();
 public char WriteMapChar(BlockType type)
 {
@@ -97,7 +114,7 @@ class GameLayer
   public void SubWidth()
   {
     // Min Size is 2x2
-    if (m_width == 2)
+    if (m_width == 0)
       return;
 
     Node[][] newNodes = new Node[m_width - 1][m_height];
@@ -119,7 +136,7 @@ class GameLayer
   public void SubHeight()
   {
     // Min Size is 2x2
-    if (m_height == 2)
+    if (m_height == 0)
       return;
 
     Node[][] newNodes = new Node[m_width][m_height - 1];
@@ -183,6 +200,17 @@ class GameLayer
     nodes = newNodes;
     m_height++;
   }
+
+  public void clear()
+  {
+    for (int x = 0; x < m_width; x++)
+    {
+      for (int y = 0; y < m_height; y++)
+      {
+        nodes[x][y].clear();
+      }
+    }
+  }
 }
 
 class GameUndoEvent
@@ -200,6 +228,9 @@ class GameMap
   public String levelName;
   public String levelPath;
   public String levelMap;
+  private String levelMessage;
+  public float readingMessageT = 0;
+  public boolean readingMessage = false;
   public int m_width;
   public int m_height;
   public GameLayer bgLayer;
@@ -218,8 +249,15 @@ class GameMap
     return x >= 0 && x < m_width && y >= 0 && y < m_height;
   }
 
+  public void ClearUndos()
+  {
+    if (UndoEvents.size() > 0)
+      UndoEvents = new ArrayList<GameUndoEvent>();
+  }
+
   public void RecalculateTargetCount()
   {
+    targetsFilled = 0;
     targetCount = 0;
     for (int x = 0; x < m_width; x++)
     {
@@ -227,7 +265,13 @@ class GameMap
       {
         BlockType t = bgLayer.nodes[x][y].type;
         if (t == BlockType.TARGET)
+        {
           targetCount++;
+          if (gameMap.entityLayer.nodes[x][y].targetPiece)
+          {
+            targetsFilled++;
+          }
+        }
       }
     }
   }
@@ -272,19 +316,43 @@ class GameMap
     return true;
   }
 
-  public GameMap(String _levelPath, String _levelMap)
+  public void clear()
+  {
+    bgLayer.clear();
+    entityLayer.clear();
+  }
+
+  public void update()
+  {
+    if (readingMessage)
+      readingMessageT += deltaTime;
+    else
+      readingMessageT = 0;
+  }
+
+  public GameMap(String _levelPath, String _levelMap, String _levelMessage)
   {
     levelName = getFilenameWithoutExtension(new File(_levelPath).getName());
     levelPath = _levelPath;
     levelMap = _levelMap;
+    levelMessage = _levelMessage;//"Hey KokSucker, you see that block over there,\nI'm gonna need you to push it!\n\n\n\n\nSincerely,\n  -DeezNuts";
 
     // Find first \n to find width
     int i = _levelMap.indexOf('\n');
-    if (i == -1)
+    // Empty
+    if (_levelMap.isEmpty())
+    {
+      m_width = 0;
+      m_height = 0;
+    }
+    //
+    else if (i == -1)
     {
       m_width = _levelMap.length();
       m_height = 1;
-    } else
+    }
+    //
+    else
     {
       m_width = i;
       m_height = levelMap.length() / (i + 1);
@@ -302,22 +370,23 @@ class GameMap
       {
         // Skip characters that are not important
         while (stringIndex < levelMap.length() && levelMap.charAt(stringIndex) == '\n')
-          stringIndex++;
+        stringIndex++;
         if (stringIndex >= levelMap.length())
-          break;
+        break;
 
         // Interpret map for type
         char c = levelMap.charAt(stringIndex);
         stringIndex++;
 
         BlockType t = ReadMapChar(c);
-        if (t == BlockType.PLAYER || t == BlockType.BLOCK)
-          entityLayer.nodes[x][y].SetType(t);
+        // Check if entity layer
+        if (getLayerType(t))
+        entityLayer.nodes[x][y].SetType(t);
         else
           bgLayer.nodes[x][y].SetType(t);
 
         if (t == BlockType.TARGET)
-          targetCount++;
+        targetCount++;
       }
     }
 
@@ -376,35 +445,25 @@ class GameMap
       entityNode.UpdateSprite(int(m.position.x), int(m.position.y));
 
       // Transform effect
-      if (m.node.type == BlockType.BLOCK && bgNode.type == BlockType.TARGET)
+      if (bgNode.type == BlockType.TARGET)
       {
-        PVector pos = GetNodeCenterFromIndex(int(m.position.x), int(m.position.y));
-        EmitterController.add(new Emitter(
-          pos.x, pos.y, // X, Y
-          0.45, 6, // Lifetime, Count
-          color(255), color(41, 132, 167), // Color (start/end)
-          30, 0, // Size (start/end)
-          3, 6, 0.2, // SpeedMin, SpeedMax, Drag
-          new PVector(0, 1), 360 // Direction, AngleFuzz
-          ));
+        if (m.node.targetPiece)
+        {
+          PVector pos = GetNodeCenterFromIndex(int(m.position.x), int(m.position.y));
+          EmitterController.add(new Emitter(
+            pos.x, pos.y, // X, Y
+            0.45, 6, // Lifetime, Count
+            color(255), color(41, 132, 167), // Color (start/end)
+            30, 0, // Size (start/end)
+            3, 6, 0.2, // SpeedMin, SpeedMax, Drag
+            new PVector(0, 1), 360 // Direction, AngleFuzz
+            ));
+        }
       }
     }
 
     // Count all blocks on top of targets
-    targetsFilled = 0;
-    for (int x = 0; x < gameMap.m_width; x++)
-    {
-      for (int y = 0; y < gameMap.m_height; y++)
-      {
-        if (gameMap.bgLayer.nodes[x][y].type == BlockType.TARGET)
-        {
-          if (gameMap.entityLayer.nodes[x][y].type == BlockType.BLOCK)
-          {
-            targetsFilled++;
-          }
-        }
-      }
-    }
+    RecalculateTargetCount();
 
     if (AddToUndo)
     {
@@ -412,4 +471,32 @@ class GameMap
       UndoEvents.add(new GameUndoEvent(movingNodes));
     }
   }
+
+  public boolean IsReadingMessage()
+  {
+    return readingMessage;
+  }
+
+  public void SetReadingMessage(boolean state)
+  {
+    if (state)
+    {
+      for (int x = 0; x < gameMap.m_width; x++)
+      {
+        for (int y = 0; y < gameMap.m_height; y++)
+        {
+          if (entityLayer.nodes[x][y].type == BlockType.PLAYER)
+          {
+            if (bgLayer.nodes[x][y].type == BlockType.SIGN)
+            {
+              readingMessage = true;
+            }
+          }
+        }
+      }
+    } else
+      readingMessage = false;
+  }
+
+  //
 }

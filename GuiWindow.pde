@@ -11,6 +11,7 @@ class GuiWindow
   private Button resize_Btn;
 
   protected BoundingBox foreground;
+  protected Viewport viewport_foreground = new Viewport();
 
   protected boolean close = false;
 
@@ -34,6 +35,13 @@ class GuiWindow
     nameBar_Btn.update();
     X_Btn.update();
     resize_Btn.update();
+
+    // Viewport
+    viewport_foreground.setCenter(
+      foreground.position.x + foreground.size.x / 2.0, 
+      foreground.position.y + foreground.size.y / 2.0
+      );
+    viewport_foreground.setSize(foreground.size.x, foreground.size.y);
 
     // Positions
     nameBar_Btn.boundingBox.position = new PVector(position.x + 4, position.y + 4);
@@ -76,12 +84,9 @@ class GuiWindow
     rect(position.x, position.y, size.x, size.y);
 
     // Name Bar
-    if (nameBar_Btn.isHovered() && !mousePressed)
-      nameBar_Btn.draw(color(84));
-    else
-      nameBar_Btn.draw(color(64));
+    nameBar_Btn.draw(color(64), color(84));
     // Name
-     clip(
+    clip(
       nameBar_Btn.getPosition().x + nameBar_Btn.boundingBox.size.x / 2.0, 
       nameBar_Btn.getPosition().y + nameBar_Btn.boundingBox.size.y / 2.0, 
       nameBar_Btn.boundingBox.size.x, 
@@ -91,10 +96,7 @@ class GuiWindow
     noClip();
 
     // Exit Button
-    if (X_Btn.isHovered() && !mousePressed)
-      X_Btn.draw(color(240, 60, 60));
-    else
-      X_Btn.draw(color(180, 0, 0));
+    X_Btn.draw(color(180, 0, 0), color(240, 60, 60));
     // Exit Text
     RenderText("X", position.x + size.x - 18, position.y + 4 - getFontHeight() / 2.0, color(0), TEXTH.LEFT, 0.5);
 
@@ -105,9 +107,6 @@ class GuiWindow
   public void drawResizeButton()
   {
     // Resize Triangle
-    if (resize_Btn.isHovered() && !mousePressed)
-      resize_Btn.draw(color(200));
-    else
-      resize_Btn.draw(color(126));
+    resize_Btn.draw(color(126), color(200));
   }
 }

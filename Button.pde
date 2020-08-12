@@ -77,8 +77,7 @@ class Button
     {
       boundingBox.position.x = x;
       boundingBox.position.y = y;
-    }
-    else if (triangleBox != null)
+    } else if (triangleBox != null)
     {
       triangleBox.position.x = x;
       triangleBox.position.y = y;
@@ -90,14 +89,13 @@ class Button
     {
       boundingBox.position.x = pos.x;
       boundingBox.position.y = pos.y;
-    }
-    else if (triangleBox != null)
+    } else if (triangleBox != null)
     {
       triangleBox.position.x = pos.x;
       triangleBox.position.y = pos.y;
     }
   }
-  
+
   public PVector getPosition()
   {
     if (boundingBox != null)
@@ -142,17 +140,23 @@ class Button
     }
   }
 
-  public void draw(color c)
+  public void draw(color normal, color hovered)
   {
     //
     if (boundingBox != null)
     {
-      boundingBox.draw(c);
+      if (isHovered() && !mousePressed)
+        boundingBox.draw(hovered);
+      else
+        boundingBox.draw(normal);
     }
     //
     else if (triangleBox != null)
     {
-      triangleBox.draw(c);
+      if (isHovered() && !mousePressed)
+        triangleBox.draw(hovered);
+      else
+        triangleBox.draw(normal);
     }
     //
   }

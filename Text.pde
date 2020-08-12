@@ -14,13 +14,19 @@ float getFontHeight()
   return 0;
 }
 
-void RenderTextBG(String msg, float x, float y, float padding, color c, float size)
+void RenderTextBG(String msg, float x, float y, float padding, color c, TEXTH h, float size)
 {
   textSize(getFontHeight() * size);
   float msg_width = textWidth(msg);
 
+  float x_offset = 0;
+  if (h == TEXTH.CENTER)
+    x_offset = -msg_width/2.0;
+  else if (h == TEXTH.RIGHT)
+    x_offset = msg_width/2.0;
+
   fill(c);
-  rect(x - msg_width/2.0 - padding/2.0, y + 5 - padding/2.0, msg_width + padding, 30 + padding);
+  rect(x + x_offset - padding/2.0, y + 5 - padding/2.0, msg_width + padding, 30 + padding);
 }
 void RenderText(String msg, float x, float y, color c, TEXTH h, float size)
 {
