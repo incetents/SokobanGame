@@ -50,8 +50,8 @@ void draw()
   DrawMapLayer(gameMap.entityLayer);
   //
 
-  // Outline around level
-  if (editorMode)
+  //  around level
+  if (Editor.enabled)
   {
     noFill();
     stroke(0, 0, 255);
@@ -67,7 +67,7 @@ void draw()
   popMatrix();
 
   // Selection on map
-  if (editorMode)
+  if (Editor.enabled)
   {
     if (gameMap.IsInsideBoard(int(selectionPoint.x), int(selectionPoint.y)))
     {
@@ -106,7 +106,7 @@ void draw()
     float t = min(1, gameMap.readingMessageT * 4.0);
 
     final float msgBoxW = 1000;
-    float msgBoxH = 350 * t;
+    float msgBoxH = 390 * t;
     float msgBoxX = width/2.0 - msgBoxW / 2.0;
     float msgBoxY = height/2.0 - msgBoxH / 2.0;
     final float padding = 3;
@@ -126,7 +126,7 @@ void draw()
   }
 
   // UI On Screen
-  if (!editorMode)
+  if (!Editor.enabled)
   {
     float padding = 5;
 
@@ -178,7 +178,7 @@ void draw()
     float fontYOffset = 2;
 
     // Bar
-    if (editorMode)
+    if (Editor.enabled)
     {
       if (mouseY < yStart) 
       {
@@ -196,49 +196,19 @@ void draw()
 
     // 
     RenderText("EditMode", 7, yStart - getFontHeight() / 2.0 + fontYOffset, color(150), TEXTH.LEFT, 0.5);
-    if (editorMode)
+    if (Editor.enabled)
       RenderText("'x' [ON]", 7, yStart + fontYOffset, color(150), TEXTH.LEFT, 0.5);
     else
       RenderText("'x' [OFF]", 7, yStart + fontYOffset, color(150), TEXTH.LEFT, 0.5);
 
-    if (editorMode)
+    if (Editor.enabled)
     {
       // Separator
       fill(50);
       rect(110, yStart, 4, 42);
 
       // Block Selection
-      Sprite imageSprite = null;
-      switch(editorBlockDraw)
-      {
-      default:
-        imageSprite = SpriteMap.get("question_mark");
-        break;
-      case WALL:
-        imageSprite = SpriteMap.get("wall_A_alone");
-        break;
-      case FLOOR:
-        imageSprite = SpriteMap.get("floor_1");
-        break;
-      case TARGET:
-        imageSprite = SpriteMap.get("target_1");
-        break;
-      case BLOCK:
-        imageSprite = SpriteMap.get("block_1");
-        break;
-      case BLOCK_H:
-        imageSprite = SpriteMap.get("block_h_1");
-        break;
-      case BLOCK_V:
-        imageSprite = SpriteMap.get("block_v_1");
-        break;
-      case PLAYER:
-        imageSprite = SpriteMap.get("guy_1_right");
-        break;
-      case SIGN:
-        imageSprite = SpriteMap.get("sign_1");
-        break;
-      }
+      Sprite imageSprite = SpriteMap.get(Editor.BlockDrawSpriteList.get(Editor.BlockDrawIndex));
       if (imageSprite != null)
       {
         image(imageSprite.image, 136, yStart + 19 + 2, 38, 38);
@@ -255,6 +225,8 @@ void draw()
       // Shortcuts
       RenderText("'1' Level Selector", 428, yStart - getFontHeight() / 2.0 + fontYOffset, color(150), TEXTH.LEFT, 0.5);
       RenderText("'2' Map Settings", 428, yStart + fontYOffset, color(150), TEXTH.LEFT, 0.5);
+      
+      RenderText("'SPACE' Save Level Internally", 680, yStart - getFontHeight() / 2.0 + fontYOffset, color(150), TEXTH.LEFT, 0.5);
     }
   }
 
@@ -293,5 +265,13 @@ void draw()
     rect(0, 0, width, height);
     currentGuiWindow.draw();
     currentGuiWindow.drawResizeButton();
+  }
+  
+  // Saving
+  if(saveEffect)
+  {
+     RenderTextBG("SAVED LEVEL INTERALLY", width/2.0, height/2.0, 15, color(255), TEXTH.CENTER, 1.0);
+    RenderTextBG("SAVED LEVEL INTERALLY", width/2.0, height/2.0, 5, color(0), TEXTH.CENTER, 1.0);
+    RenderText("SAVED LEVEL INTERALLY", width/2.0, height/2.0, color(255), TEXTH.CENTER, 1.0);
   }
 }

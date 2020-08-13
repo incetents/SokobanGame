@@ -10,7 +10,7 @@ String ErrorLevel =
   "X000000000000000000X\n"+
   "XXXXXXXXXXXXXXXXXXXX\n";
 
-HashMap<Character, BlockType> levelReader = new HashMap<Character, BlockType>()
+static HashMap<Character, BlockType> levelReader = new HashMap<Character, BlockType>()
 {
   {
     put('0', BlockType.NOTHING);
@@ -22,9 +22,11 @@ HashMap<Character, BlockType> levelReader = new HashMap<Character, BlockType>()
     put('F', BlockType.FLOOR);
     put('T', BlockType.TARGET);
     put('S', BlockType.SIGN);
+    put('C', BlockType.CRATE);
+    put('Z', BlockType.FLOWERS);
   }
 };
-HashMap<BlockType, Boolean> layerType = new HashMap<BlockType, Boolean>()
+static HashMap<BlockType, Boolean> layerType = new HashMap<BlockType, Boolean>()
 {
   {
     put(BlockType.PLAYER, true);
@@ -33,13 +35,14 @@ HashMap<BlockType, Boolean> layerType = new HashMap<BlockType, Boolean>()
     put(BlockType.BLOCK_V, true);
   }
 };
-public Boolean getLayerType(BlockType type)
+public static Boolean getLayerType(BlockType type)
 {
   if (layerType.get(type) == null)
     return false;
 
   return true;
 }
+
 HashMap<BlockType, Character> levelWriter = new HashMap<BlockType, Character>();
 public char WriteMapChar(BlockType type)
 {
@@ -111,9 +114,9 @@ class GameLayer
     return x >= 0 && x < m_width && y >= 0 && y < m_height;
   }
 
-  public void SubWidth()
+  public void SubWidth(boolean isRight)
   {
-    // Min Size is 2x2
+    // Min Size
     if (m_width == 0)
       return;
 
@@ -124,8 +127,15 @@ class GameLayer
     {
       for (int y = 0; y < m_height; y++)
       {
-        newNodes[x][y] = new Node();
-        newNodes[x][y].copy(nodes[x][y]);
+        if (isRight)
+        {
+          newNodes[x][y] = new Node();
+          newNodes[x][y].copy(nodes[x][y]);
+        } else
+        {
+          newNodes[x][y] = new Node();
+          newNodes[x][y].copy(nodes[x+1][y]);
+        }
       }
     }
 
@@ -133,7 +143,7 @@ class GameLayer
     nodes = newNodes;
     m_width--;
   }
-  public void SubHeight()
+  public void SubHeight(boolean isUp)
   {
     // Min Size is 2x2
     if (m_height == 0)
@@ -146,8 +156,15 @@ class GameLayer
     {
       for (int y = 0; y < m_height - 1; y++)
       {
-        newNodes[x][y] = new Node();
-        newNodes[x][y].copy(nodes[x][y]);
+        if (isUp)
+        {
+          newNodes[x][y] = new Node();
+          newNodes[x][y].copy(nodes[x][y]);
+        } else
+        {
+          newNodes[x][y] = new Node();
+          newNodes[x][y].copy(nodes[x][y + 1]);
+        }
       }
     }
 
@@ -156,7 +173,7 @@ class GameLayer
     m_height--;
   }
 
-  public void AddWidth()
+  public void AddWidth(boolean isRight)
   {
     Node[][] newNodes = new Node[m_width + 1][m_height];
     // Copy old nodes
@@ -164,21 +181,31 @@ class GameLayer
     {
       for (int y = 0; y < m_height; y++)
       {
-        newNodes[x][y] = new Node();
-        newNodes[x][y].copy(nodes[x][y]);
+        if (isRight)
+        {
+          newNodes[x][y] = new Node();
+          newNodes[x][y].copy(nodes[x][y]);
+        } else
+        {
+          newNodes[x+1][y] = new Node();
+          newNodes[x+1][y].copy(nodes[x][y]);
+        }
       }
     }
     // Create new column
     for (int y = 0; y < m_height; y++)
     {
-      newNodes[m_width][y] = new Node();
+      if (isRight)
+        newNodes[m_width][y] = new Node();
+      else
+        newNodes[0][y] = new Node();
     }
 
     // Flags
     nodes = newNodes;
     m_width++;
   }
-  public void AddHeight()
+  public void AddHeight(boolean isUp)
   {
     Node[][] newNodes = new Node[m_width][m_height + 1];
     // Copy old nodes
@@ -186,14 +213,24 @@ class GameLayer
     {
       for (int y = 0; y < m_height; y++)
       {
-        newNodes[x][y] = new Node();
-        newNodes[x][y].copy(nodes[x][y]);
+        if (isUp)
+        {
+          newNodes[x][y] = new Node();
+          newNodes[x][y].copy(nodes[x][y]);
+        } else
+        {
+          newNodes[x][y+1] = new Node();
+          newNodes[x][y+1].copy(nodes[x][y]);
+        }
       }
     }
     // Create new row
     for (int x = 0; x < m_width; x++)
     {
-      newNodes[x][m_height] = new Node();
+      if (isUp)
+        newNodes[x][m_height] = new Node();
+      else
+        newNodes[x][0] = new Node();
     }
 
     // Flags
@@ -228,7 +265,7 @@ class GameMap
   public String levelName;
   public String levelPath;
   public String levelMap;
-  private String levelMessage;
+  public String levelMessage;
   public float readingMessageT = 0;
   public boolean readingMessage = false;
   public int m_width;
@@ -276,42 +313,42 @@ class GameMap
     }
   }
 
-  public boolean SubWidth()
+  public boolean SubWidth(boolean isRight)
   {
-    if (m_width == 2)
+    if (m_width == 0)
       return false;
 
     m_width--;
-    bgLayer.SubWidth();
-    entityLayer.SubWidth();
+    bgLayer.SubWidth(isRight);
+    entityLayer.SubWidth(isRight);
 
     return true;
   }
-  public boolean AddWidth()
+  public boolean AddWidth(boolean isRight)
   {
     m_width++;
-    bgLayer.AddWidth();
-    entityLayer.AddWidth();
+    bgLayer.AddWidth(isRight);
+    entityLayer.AddWidth(isRight);
 
     return true;
   }
 
-  public boolean SubHeight()
+  public boolean SubHeight(boolean isUp)
   {
-    if (m_height == 2)
+    if (m_height == 0)
       return false;
 
     m_height--;
-    bgLayer.SubHeight();
-    entityLayer.SubHeight();
+    bgLayer.SubHeight(isUp);
+    entityLayer.SubHeight(isUp);
 
     return true;
   }
-  public boolean AddHeight()
+  public boolean AddHeight(boolean isUp)
   {
     m_height++;
-    bgLayer.AddHeight();
-    entityLayer.AddHeight();
+    bgLayer.AddHeight(isUp);
+    entityLayer.AddHeight(isUp);
 
     return true;
   }
@@ -370,9 +407,9 @@ class GameMap
       {
         // Skip characters that are not important
         while (stringIndex < levelMap.length() && levelMap.charAt(stringIndex) == '\n')
-        stringIndex++;
+          stringIndex++;
         if (stringIndex >= levelMap.length())
-        break;
+          break;
 
         // Interpret map for type
         char c = levelMap.charAt(stringIndex);
@@ -381,12 +418,12 @@ class GameMap
         BlockType t = ReadMapChar(c);
         // Check if entity layer
         if (getLayerType(t))
-        entityLayer.nodes[x][y].SetType(t);
+          entityLayer.nodes[x][y].SetType(t);
         else
           bgLayer.nodes[x][y].SetType(t);
 
         if (t == BlockType.TARGET)
-        targetCount++;
+          targetCount++;
       }
     }
 

@@ -7,10 +7,10 @@ class Gui_LevelSettings extends GuiWindow
   Button levelWidth_Sub_R_Btn = new Button(ButtonType.SQUARE);
   Button levelWidth_Add_R_Btn = new Button(ButtonType.SQUARE);
 
-  Button levelHeight_Sub_L_Btn = new Button(ButtonType.SQUARE);
-  Button levelHeight_Add_L_Btn = new Button(ButtonType.SQUARE);
-  Button levelHeight_Sub_R_Btn = new Button(ButtonType.SQUARE);
-  Button levelHeight_Add_R_Btn = new Button(ButtonType.SQUARE);
+  Button levelHeight_Sub_U_Btn = new Button(ButtonType.SQUARE);
+  Button levelHeight_Add_U_Btn = new Button(ButtonType.SQUARE);
+  Button levelHeight_Sub_D_Btn = new Button(ButtonType.SQUARE);
+  Button levelHeight_Add_D_Btn = new Button(ButtonType.SQUARE);
 
   Button clearLevel_Btn = new Button(ButtonType.SQUARE);
 
@@ -26,10 +26,10 @@ class Gui_LevelSettings extends GuiWindow
     levelWidth_Sub_R_Btn.boundingBox.size = new PVector(46, 22);
     levelWidth_Add_R_Btn.boundingBox.size = new PVector(46, 22);
 
-    levelHeight_Sub_L_Btn.boundingBox.size = new PVector(46, 22);
-    levelHeight_Add_L_Btn.boundingBox.size = new PVector(46, 22);
-    levelHeight_Sub_R_Btn.boundingBox.size = new PVector(46, 22);
-    levelHeight_Add_R_Btn.boundingBox.size = new PVector(46, 22);
+    levelHeight_Sub_U_Btn.boundingBox.size = new PVector(46, 22);
+    levelHeight_Add_U_Btn.boundingBox.size = new PVector(46, 22);
+    levelHeight_Sub_D_Btn.boundingBox.size = new PVector(46, 22);
+    levelHeight_Add_D_Btn.boundingBox.size = new PVector(46, 22);
 
     clearLevel_Btn.boundingBox.size = new PVector(60, 22);
   }
@@ -43,10 +43,10 @@ class Gui_LevelSettings extends GuiWindow
     levelWidth_Sub_R_Btn.update();
     levelWidth_Add_R_Btn.update();
 
-    levelHeight_Sub_L_Btn.update();
-    levelHeight_Add_L_Btn.update();
-    levelHeight_Sub_R_Btn.update();
-    levelHeight_Add_R_Btn.update();
+    levelHeight_Sub_U_Btn.update();
+    levelHeight_Add_U_Btn.update();
+    levelHeight_Sub_D_Btn.update();
+    levelHeight_Add_D_Btn.update();
 
     clearLevel_Btn.update();
 
@@ -59,11 +59,11 @@ class Gui_LevelSettings extends GuiWindow
     levelWidth_Sub_R_Btn.boundingBox.position = new PVector(xStart + 190, yStart + 4 + getFontHeight());
     levelWidth_Add_R_Btn.boundingBox.position = new PVector(xStart + 240, yStart + 4 + getFontHeight());
 
-    levelHeight_Sub_L_Btn.boundingBox.position = new PVector(xStart + 30, yStart + 4 + getFontHeight() + yOffset1);
-    levelHeight_Add_L_Btn.boundingBox.position = new PVector(xStart + 80, yStart + 4 + getFontHeight() + yOffset1);
+    levelHeight_Sub_U_Btn.boundingBox.position = new PVector(xStart + 30, yStart + 4 + getFontHeight() + yOffset1);
+    levelHeight_Add_U_Btn.boundingBox.position = new PVector(xStart + 80, yStart + 4 + getFontHeight() + yOffset1);
 
-    levelHeight_Sub_R_Btn.boundingBox.position = new PVector(xStart + 190, yStart + 4 + getFontHeight() + yOffset1);
-    levelHeight_Add_R_Btn.boundingBox.position = new PVector(xStart + 240, yStart + 4 + getFontHeight() + yOffset1);
+    levelHeight_Sub_D_Btn.boundingBox.position = new PVector(xStart + 190, yStart + 4 + getFontHeight() + yOffset1);
+    levelHeight_Add_D_Btn.boundingBox.position = new PVector(xStart + 240, yStart + 4 + getFontHeight() + yOffset1);
 
     clearLevel_Btn.boundingBox.position = new PVector(xStart + 4, yStart + 4 + getFontHeight() + yOffset1 * 2);
 
@@ -71,25 +71,49 @@ class Gui_LevelSettings extends GuiWindow
 
     if (levelWidth_Sub_L_Btn.isReleased())
     {
-      if (gameMap.SubWidth())
+      if (gameMap.SubWidth(false))
         regenMap = true;
     }
     //
     else if (levelWidth_Add_L_Btn.isReleased())
     {
-      if (gameMap.AddWidth())
+      if (gameMap.AddWidth(false))
         regenMap = true;
     }
     //
-    else if (levelHeight_Sub_L_Btn.isReleased())
+    else if (levelWidth_Add_R_Btn.isReleased())
     {
-      if (gameMap.SubHeight())
+      if (gameMap.AddWidth(true))
         regenMap = true;
     }
     //
-    else if (levelHeight_Add_L_Btn.isReleased())
+    else if (levelWidth_Sub_R_Btn.isReleased())
     {
-      if (gameMap.AddHeight())
+      if (gameMap.SubWidth(true))
+        regenMap = true;
+    }
+    //
+    else if (levelHeight_Sub_U_Btn.isReleased())
+    {
+      if (gameMap.SubHeight(false))
+        regenMap = true;
+    }
+    //
+    else if (levelHeight_Add_U_Btn.isReleased())
+    {
+      if (gameMap.AddHeight(false))
+        regenMap = true;
+    }
+    //
+    else if (levelHeight_Sub_D_Btn.isReleased())
+    {
+      if (gameMap.SubHeight(true))
+        regenMap = true;
+    }
+    //
+    else if (levelHeight_Add_D_Btn.isReleased())
+    {
+      if (gameMap.AddHeight(true))
         regenMap = true;
     }
     //
@@ -122,10 +146,10 @@ class Gui_LevelSettings extends GuiWindow
     levelWidth_Sub_R_Btn.draw(color(84), color(124));
     levelWidth_Add_R_Btn.draw(color(84), color(124));
 
-    levelHeight_Sub_L_Btn.draw(color(84), color(124));
-    levelHeight_Add_L_Btn.draw(color(84), color(124));
-    levelHeight_Sub_R_Btn.draw(color(84), color(124));
-    levelHeight_Add_R_Btn.draw(color(84), color(124));
+    levelHeight_Sub_U_Btn.draw(color(84), color(124));
+    levelHeight_Add_U_Btn.draw(color(84), color(124));
+    levelHeight_Sub_D_Btn.draw(color(84), color(124));
+    levelHeight_Add_D_Btn.draw(color(84), color(124));
 
     clearLevel_Btn.draw(color(84), color(124));
 
@@ -147,12 +171,12 @@ class Gui_LevelSettings extends GuiWindow
     //
     RenderText("Level Height: " + str(gameMap.m_height), xStart + 4, yStart - getFontHeight() * 0.25 + yOffset1, color(255), TEXTH.LEFT, 0.75);
 
-    RenderText("L", xStart + 8, yStart + 44 - getFontHeight() * 0.75 + yOffset1, color(255), TEXTH.LEFT, 0.75);
-    RenderText("(-)", levelHeight_Sub_L_Btn.boundingBox.position.x + 4, yStart + 44 - getFontHeight() * 0.75 + yOffset1, color(255), TEXTH.LEFT, 0.75);
-    RenderText("(+)", levelHeight_Add_L_Btn.boundingBox.position.x + 4, yStart + 44 - getFontHeight() * 0.75 + yOffset1, color(255), TEXTH.LEFT, 0.75);
-    RenderText("R", xStart + 8 + 160, yStart + 44 - getFontHeight() * 0.75 + yOffset1, color(255), TEXTH.LEFT, 0.75);
-    RenderText("(-)", levelHeight_Sub_R_Btn.boundingBox.position.x + 4, yStart + 44 - getFontHeight() * 0.75 + yOffset1, color(255), TEXTH.LEFT, 0.75);
-    RenderText("(+)", levelHeight_Add_R_Btn.boundingBox.position.x + 4, yStart + 44 - getFontHeight() * 0.75 + yOffset1, color(255), TEXTH.LEFT, 0.75);
+    RenderText("U", xStart + 8, yStart + 44 - getFontHeight() * 0.75 + yOffset1, color(255), TEXTH.LEFT, 0.75);
+    RenderText("(-)", levelHeight_Sub_U_Btn.boundingBox.position.x + 4, yStart + 44 - getFontHeight() * 0.75 + yOffset1, color(255), TEXTH.LEFT, 0.75);
+    RenderText("(+)", levelHeight_Add_U_Btn.boundingBox.position.x + 4, yStart + 44 - getFontHeight() * 0.75 + yOffset1, color(255), TEXTH.LEFT, 0.75);
+    RenderText("D", xStart + 8 + 160, yStart + 44 - getFontHeight() * 0.75 + yOffset1, color(255), TEXTH.LEFT, 0.75);
+    RenderText("(-)", levelHeight_Sub_D_Btn.boundingBox.position.x + 4, yStart + 44 - getFontHeight() * 0.75 + yOffset1, color(255), TEXTH.LEFT, 0.75);
+    RenderText("(+)", levelHeight_Add_D_Btn.boundingBox.position.x + 4, yStart + 44 - getFontHeight() * 0.75 + yOffset1, color(255), TEXTH.LEFT, 0.75);
 
     fill(43);
     rect(xStart, yStart + 44 - (getFontHeight() * 0.75) + yOffset1 + 40, foreground.size.x, 5);

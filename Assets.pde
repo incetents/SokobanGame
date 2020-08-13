@@ -30,11 +30,11 @@ String PNG_EXTENSION = ".png";
 class Texture
 {
   public PImage image;
-  
+
   public Texture(String path)
   {
     image = loadImage(path);
-    if(image == null)
+    if (image == null)
       println("MISSING PATH: " + path);
   }
 }
@@ -81,19 +81,23 @@ void SetupAssets()
 
   // Create all Sprites
   SpriteMap.put("title_card", new Sprite(GetTexture("title_card"), false, false));
-  
+
   SpriteMap.put("question_mark", new Sprite(GetTexture("question_mark"), false, false));
 
   SpriteMap.put("undo_icon", new Sprite(GetTexture("undo_icon"), false, false));
+
+  SpriteMap.put("crate_1", new Sprite(GetTexture("crate_1"), false, false));
+
+  SpriteMap.put("flowers_1", new Sprite(GetTexture("flowers_1"), false, false));
 
   SpriteMap.put("sign_1", new Sprite(GetTexture("sign_1"), false, false));
 
   SpriteMap.put("block_1", new Sprite(GetTexture("block_1"), false, false));
   SpriteMap.put("block_2", new Sprite(GetTexture("block_2"), false, false));
-  
+
   SpriteMap.put("block_h_1", new Sprite(GetTexture("block_h_1"), false, false));
   SpriteMap.put("block_h_2", new Sprite(GetTexture("block_h_2"), false, false));
-  
+
   SpriteMap.put("block_v_1", new Sprite(GetTexture("block_v_1"), false, false));
   SpriteMap.put("block_v_2", new Sprite(GetTexture("block_v_2"), false, false));
 

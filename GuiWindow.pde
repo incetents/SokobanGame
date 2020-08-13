@@ -71,7 +71,7 @@ class GuiWindow
     size.y = max(size.y, minSize.y);
 
     // Close
-    if (X_Btn.isPressed())
+    if (X_Btn.isReleased())
     {
       close = true;
     }

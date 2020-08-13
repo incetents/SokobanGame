@@ -10,7 +10,9 @@ public enum BlockType
     BLOCK_V, 
     FLOOR, 
     TARGET, 
-    SIGN
+    SIGN, 
+    CRATE, 
+    FLOWERS,
 }
 //
 class MovingNode
@@ -75,6 +77,7 @@ class Node
     {
     default:
       break;
+    case CRATE:
     case WALL:
       this.solid = true;
       break;
@@ -372,6 +375,10 @@ class Node
       return SpriteMap.get("sign_1");
     case TARGET:
       return SpriteMap.get("target_1");
+    case CRATE:
+      return SpriteMap.get("crate_1");
+    case FLOWERS:
+      return SpriteMap.get("flowers_1");
 
     default:
     case ERROR:

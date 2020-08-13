@@ -45,6 +45,10 @@ float levelTransitionIntroSpeed = 1.25f;
 float levelTransitionOutroSpeed = 1.75f;
 boolean levelTransitionIsReset = false;
 
+// Save effect
+boolean saveEffect = false;
+float saveEffectTime = 0.0f;
+
 // Undo
 boolean doingUndo = false;
 
@@ -61,22 +65,6 @@ final color messageColor = color(250, 172, 160); //218, 85, 64
 // Block Index for what mouse is hovering
 PVector selectionPoint = new PVector(0, 0);
 
-// Editor Info
-boolean editorMode = false;
-BlockType editorBlockDraw = BlockType.WALL;
-int editorBlockDrawIndex = 0;
-ArrayList<BlockType> editorBlockDrawList = new ArrayList<BlockType>() {
-  {
-    add(BlockType.WALL);
-    add(BlockType.FLOOR);
-    add(BlockType.TARGET);
-    add(BlockType.BLOCK);
-    add(BlockType.BLOCK_H);
-    add(BlockType.BLOCK_V);
-    add(BlockType.PLAYER);
-    add(BlockType.SIGN);
-  }
-};
 
 //
 PShader shader_transition;
@@ -126,10 +114,33 @@ void update()
   } else
   {
 
-    // Gui - Level Selector
-    if (editorMode)
+    // Editor Mode
+    if (Input.GetKeyDown('x'))
     {
-      if (Input.GetKeyDown('1'))
+      Editor.enabled = !Editor.enabled;
+      gameMap.SetReadingMessage(false);
+
+      if (!Editor.enabled)
+      {
+        currentGuiWindow = null;
+        gameMap.RecalculateTargetCount();
+      }
+    }
+    //
+
+
+    // Editor - Gui - Level Selector
+    if (Editor.enabled)
+    {
+      // Save
+      if (Input.GetKeyDown(' '))
+      {
+        saveEffect = true;
+        saveEffectTime = 0.0f;
+        SaveLevel();
+      }
+      //
+      else if (Input.GetKeyDown('1'))
       {
         if (currentGuiWindow == null)
         {
@@ -155,6 +166,14 @@ void update()
       }
     }
 
+    // Save effect
+    if (saveEffect)
+    {
+      saveEffectTime += deltaTime;
+      if(saveEffectTime >= 1.25)
+        saveEffect = false;
+    }
+
     // Hovered Button
     hoveredButton = null;
     if (!mousePressed)
@@ -176,34 +195,15 @@ void update()
       }
     }
 
-    // Editor Mode
-    if (Input.GetKeyDown('x'))
-    {
-      editorMode = !editorMode;
-      gameMap.SetReadingMessage(false);
-
-      if (!editorMode)
-      {
-        currentGuiWindow = null;
-        gameMap.RecalculateTargetCount();
-      }
-    }
-    if (editorMode)
+    if (Editor.enabled)
     {
       // Block for Drawing
       //
       // Index Modification
       if (Input.GetScrollDelta() == -1.0)
-        editorBlockDrawIndex++;
+        Editor.NextBlockDrawIndex(1);
       else  if (Input.GetScrollDelta() == 1.0)
-        editorBlockDrawIndex--;
-
-      if (editorBlockDrawIndex >= editorBlockDrawList.size())
-        editorBlockDrawIndex = 0;
-      else if (editorBlockDrawIndex < 0)
-        editorBlockDrawIndex = editorBlockDrawList.size() - 1;
-
-      editorBlockDraw = editorBlockDrawList.get(editorBlockDrawIndex);
+        Editor.NextBlockDrawIndex(-1);
 
 
       // Update Selection
@@ -222,49 +222,22 @@ void update()
         int y = int(selectionPoint.y);
         if (Input.GetMouseButton(LEFT))
         {
-          // Remove Undos
-          gameMap.ClearUndos();
-
-          // Entity Layer
-          if (getLayerType(editorBlockDraw))
-          {
-            gameMap.entityLayer.SetBlock(x, y, editorBlockDraw);
-            gameMap.bgLayer.SetBlock(x, y, BlockType.NOTHING);
-          }
-          // BG Layer
-          else
-            gameMap.bgLayer.SetBlock(x, y, editorBlockDraw);
-
-          // Considerations
-          if (editorBlockDraw == BlockType.TARGET)
-            gameMap.RecalculateTargetCount();
+          Editor.DrawBlock(x, y, gameMap);
         }
         //
         else if (Input.GetMouseButton(RIGHT))
         {
-          // Remove Undos
-          gameMap.ClearUndos();
-
-          boolean MapChanged = false;
-          // Considerations before delete
-          if (gameMap.bgLayer.nodes[x][y].type == BlockType.TARGET)
-            MapChanged = true;
-
-          gameMap.bgLayer.SetBlock(x, y, BlockType.NOTHING);
-          gameMap.entityLayer.SetBlock(x, y, BlockType.NOTHING);
-
-          if (MapChanged)
-            gameMap.RecalculateTargetCount();
+          Editor.EraseBlock(x, y, gameMap);
         }
       }
     }
 
     // Update Map
-    if (!editorMode)
+    if (!Editor.enabled)
       gameMap.update();
 
     // Check if level is complete
-    if (!editorMode && gameMap.targetsFilled >= gameMap.targetCount && gameMap.targetCount > 0)
+    if (!Editor.enabled && gameMap.targetsFilled >= gameMap.targetCount && gameMap.targetCount > 0)
     {
       // Initial Level Complete
       if (!levelTransitionMode)
@@ -347,13 +320,23 @@ void update()
       //
 
       // Reset
-      if (Input.GetKeyDown('r'))
+      if (Input.GetKeyDown('r') || Input.GetKeyDown('R'))
       {
-        levelTransitionMode = true;
-        levelTransitionIsReset = true;
+        // Instant reset
+        if (Editor.enabled)
+        {
+          ReloadLevel();
+          EmitterController.clear();
+        }
+        // Reset only in transition mode
+        else
+        {
+          levelTransitionMode = true;
+          levelTransitionIsReset = true;
+        }
       }
       // Debug
-      else if (Input.GetKeyDown('t'))
+      else if (Input.GetKeyDown('t') || Input.GetKeyDown('T'))
       {
         LoadNextLevel();
       }
@@ -363,18 +346,23 @@ void update()
         gameMap.SetReadingMessage(!gameMap.IsReadingMessage());
       }
       //
-      if (!editorMode)
+      if (!Editor.enabled)
       {
-        if (Input.GetKey(UP) && !Input.GetKey(DOWN))
+        boolean UpKey = Input.GetKey(UP) || Input.GetKey('w') || Input.GetKey('W');
+        boolean DownKey = Input.GetKey(DOWN) || Input.GetKey('s') || Input.GetKey('S');
+        boolean LeftKey = Input.GetKey(LEFT) || Input.GetKey('a') || Input.GetKey('A');
+        boolean RightKey = Input.GetKey(RIGHT) || Input.GetKey('d') || Input.GetKey('D');
+
+        if (UpKey && !DownKey)
           Move(Direction.UP);
-        else  if (!Input.GetKey(UP) && Input.GetKey(DOWN))
+        else  if (!UpKey && DownKey)
           Move(Direction.DOWN);
-        else  if (Input.GetKey(LEFT) && !Input.GetKey(RIGHT))
+        else  if (LeftKey && !RightKey)
           Move(Direction.LEFT);
-        else  if (Input.GetKey(RIGHT) && !Input.GetKey(LEFT))
+        else  if (RightKey && !LeftKey)
           Move(Direction.RIGHT);
         // undo
-        else  if (Input.GetKey('z'))
+        else  if (Input.GetKey('z') || Input.GetKey('Z'))
         {
           Undo();
         }
@@ -428,6 +416,34 @@ void LoadNextLevel()
   // Load first level if reached last level
   ImportLevel(new File(levelFiles.get(0).getPath()));
 }
+
+// Used from editor to save state
+void SaveLevel()
+{
+  String updatedLevelMap = "";
+
+  for (int y = 0; y < gameMap.m_height; y++)
+  {
+    for (int x = 0; x < gameMap.m_width; x++)
+    {
+      if (gameMap.bgLayer.nodes[x][y].type != BlockType.NOTHING)
+      {
+        updatedLevelMap += (WriteMapChar(gameMap.bgLayer.nodes[x][y].type));
+      } else if (gameMap.entityLayer.nodes[x][y].type != BlockType.NOTHING)
+      {
+        updatedLevelMap += (WriteMapChar(gameMap.entityLayer.nodes[x][y].type));
+      } else
+      {
+        updatedLevelMap += ('0');
+      }
+    }
+    updatedLevelMap += ("\n");
+  }
+
+  gameMap.levelMap = updatedLevelMap;
+  gameMap.UpdateAllSprites();
+}
+
 void ImportLevel(File file)
 {
   if (fileExists(file.getPath()))
@@ -444,9 +460,18 @@ void ImportLevel(File file)
         {
           String[] messageSplit = split(line, '\\');
           for (int i = 0; i < messageSplit.length; i++)
-            newMapMessage += messageSplit[i] + '\n';
-        } else
+          {
+            newMapMessage += messageSplit[i];
+            if (i != messageSplit.length - 1)
+              newMapMessage += '\n';
+          }
+        }
+        //
+        else
+        {
           newMapLayout = newMapLayout + line + "\n";
+        }
+
         //String[] pieces = split(line, TAB);
         //int x = int(pieces[0]);
         //int y = int(pieces[1]);
@@ -477,7 +502,21 @@ void ExportLevel(File file)
 
   // Write
   PrintWriter output = createWriter(desiredPath);
-  output.println("Insert Message Here\\Line2\\Line3");
+  if (gameMap.levelMessage.isEmpty())
+    output.println("Insert Message Here\\Line2\\Line3");
+  else
+  {
+    String[] messageSplit = split(gameMap.levelMessage, '\n');
+    String finalMessage = "";
+    for (int i = 0; i < messageSplit.length; i++)
+    {
+      finalMessage += messageSplit[i];
+      if (i != messageSplit.length - 1)
+        finalMessage += '\\';
+    }
+
+    output.println(finalMessage);
+  }
 
   for (int y = 0; y < gameMap.m_height; y++)
   {
