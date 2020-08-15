@@ -12,7 +12,13 @@ public enum BlockType
     TARGET, 
     SIGN, 
     CRATE, 
-    FLOWERS,
+    SNOW, 
+    PLANT, 
+    FENCE, 
+    ARROW_UP, 
+    ARROW_DOWN, 
+    ARROW_LEFT, 
+    ARROW_RIGHT
 }
 //
 class MovingNode
@@ -35,6 +41,7 @@ class Node
   public Sprite sprite = null;
   public Sprite[] spriteCorners = { null, null, null, null };
   public int flag = 0;
+  public Direction blockDirection = Direction.NONE;
   public boolean multiSprite = false;
   public boolean solid = false;
   public boolean pushable_h = false;
@@ -47,6 +54,7 @@ class Node
     this.moveDirection = other.moveDirection;
     this.sprite = other.sprite;
     this.flag = other.flag;
+    this.blockDirection = other.blockDirection;
     for (int i = 0; i < 4; i++)
       this.spriteCorners[i] = other.spriteCorners[i];
     this.solid = other.solid;
@@ -60,6 +68,7 @@ class Node
     this.moveDirection = Direction.NONE;
     this.sprite = null;
     this.flag = 0;
+    this.blockDirection = Direction.NONE;
     for (int i = 0; i < 4; i++)
       this.spriteCorners[i] = null;
     this.solid = false;
@@ -76,6 +85,18 @@ class Node
     switch(type)
     {
     default:
+      break;
+    case ARROW_UP:
+      this.blockDirection = Direction.DOWN;
+      break;
+    case ARROW_DOWN:
+      this.blockDirection = Direction.UP;
+      break;
+    case ARROW_LEFT:
+      this.blockDirection = Direction.RIGHT;
+      break;
+    case ARROW_RIGHT:
+      this.blockDirection = Direction.LEFT;
       break;
     case CRATE:
     case WALL:
@@ -371,15 +392,36 @@ class Node
           return SpriteMap.get("guy_1_down2");
       }
 
+    case ARROW_UP:
+      return SpriteMap.get("arrow_up");
+    case ARROW_DOWN:
+      return SpriteMap.get("arrow_down");
+    case ARROW_LEFT:
+      return SpriteMap.get("arrow_left");
+    case ARROW_RIGHT:
+      return SpriteMap.get("arrow_right");
+    case PLANT:
+      return SpriteMap.get("plant_1");
+    case FENCE:
+      return SpriteMap.get("fence_1");
     case SIGN:
       return SpriteMap.get("sign_1");
     case TARGET:
       return SpriteMap.get("target_1");
     case CRATE:
       return SpriteMap.get("crate_1");
-    case FLOWERS:
-      return SpriteMap.get("flowers_1");
-
+    case SNOW:
+      {
+        int index = (x + (y * gameMap.m_width)) % 4;
+        if (index == 0)
+          return SpriteMap.get("snow_1");
+        else if (index == 1)
+          return SpriteMap.get("snow_2");
+        else if (index == 2)
+          return SpriteMap.get("snow_3");
+        else
+          return SpriteMap.get("snow_4");
+      }
     default:
     case ERROR:
       return SpriteMap.get("question_mark");

@@ -23,7 +23,13 @@ static HashMap<Character, BlockType> levelReader = new HashMap<Character, BlockT
     put('T', BlockType.TARGET);
     put('S', BlockType.SIGN);
     put('C', BlockType.CRATE);
-    put('Z', BlockType.FLOWERS);
+    put('Z', BlockType.SNOW);
+    put('A', BlockType.PLANT);
+    put('a', BlockType.FENCE);
+    put('1', BlockType.ARROW_UP);
+    put('2', BlockType.ARROW_DOWN);
+    put('3', BlockType.ARROW_LEFT);
+    put('4', BlockType.ARROW_RIGHT);
   }
 };
 static HashMap<BlockType, Boolean> layerType = new HashMap<BlockType, Boolean>()
@@ -58,6 +64,12 @@ public char WriteMapChar(BlockType type)
       }
     }
   }
+  if (levelWriter.get(type) == null)
+  {
+    println("DUPLICATE CHAR VALUE FOR SAVING FOR TYPE: " + type);
+    return '0';
+  }
+
   return levelWriter.get(type);
 }
 public BlockType ReadMapChar(char c)

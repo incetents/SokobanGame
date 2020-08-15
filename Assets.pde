@@ -88,7 +88,18 @@ void SetupAssets()
 
   SpriteMap.put("crate_1", new Sprite(GetTexture("crate_1"), false, false));
 
-  SpriteMap.put("flowers_1", new Sprite(GetTexture("flowers_1"), false, false));
+  SpriteMap.put("arrow_up", new Sprite(GetTexture("arrow_up"), false, false));
+  SpriteMap.put("arrow_left", new Sprite(GetTexture("arrow_left"), false, false));
+  SpriteMap.put("arrow_right", new Sprite(GetTexture("arrow_right"), false, false));
+  SpriteMap.put("arrow_down", new Sprite(GetTexture("arrow_down"), false, false));
+
+  SpriteMap.put("snow_1", new Sprite(GetTexture("snow_1"), false, false));
+  SpriteMap.put("snow_2", new Sprite(GetTexture("snow_2"), false, false));
+  SpriteMap.put("snow_3", new Sprite(GetTexture("snow_3"), false, false));
+  SpriteMap.put("snow_4", new Sprite(GetTexture("snow_4"), false, false));
+
+  SpriteMap.put("plant_1", new Sprite(GetTexture("plant_1"), false, false));
+  SpriteMap.put("fence_1", new Sprite(GetTexture("fence_1"), false, false));
 
   SpriteMap.put("sign_1", new Sprite(GetTexture("sign_1"), false, false));
 

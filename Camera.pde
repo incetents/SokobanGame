@@ -21,14 +21,10 @@ class Camera
     position.y = _y;
   }
 
-  public PVector getPosition()
-  {
-    return position;
-  }
   public float getX() { 
-    return position.x;
+    return floor(position.x);
   }
   public float getY() {
-    return position.y;
+    return floor(position.y);
   }
 }

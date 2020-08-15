@@ -70,6 +70,7 @@ PVector selectionPoint = new PVector(0, 0);
 PShader shader_transition;
 
 // Guis
+Gui_BlockSelector gui_blockSelector = null;
 Gui_LevelSettings gui_levelSettings = null;
 Gui_LevelSelector gui_levelSelector = null;
 // Gui Window
@@ -83,6 +84,7 @@ void setup()
   // Setup Guis
   gui_levelSelector = new Gui_LevelSelector("Level - Selector", new PVector(100.0, 100.0), new PVector(500.0, 300.0), new PVector(160, 80));
   gui_levelSettings = new Gui_LevelSettings("Level - Settings", new PVector(100.0, 100.0), new PVector(500.0, 300.0), new PVector(160, 80));
+  gui_blockSelector = new Gui_BlockSelector("Block - Selector", new PVector(100.0, 100.0), new PVector(500.0, 500.0), new PVector(160, 160));
 
   // remove image smoothing
   ((PGraphicsOpenGL)g).textureSampling(3); // the magic
@@ -100,7 +102,7 @@ void setup()
   shader_transition.set("height", float(height));
 
   // Create Map
-  //LoadNextLevel();
+  LoadNextLevel();
 }
 
 
@@ -139,6 +141,16 @@ void update()
         saveEffectTime = 0.0f;
         SaveLevel();
       }
+      // Block Level Complete
+      else if (Input.GetKeyDown('q') || Input.GetKeyDown('Q'))
+      {
+        Editor.preventLevelCompletion = !Editor.preventLevelCompletion;
+      }
+      // Skip Level
+      else if (Input.GetKeyDown('t') || Input.GetKeyDown('T'))
+      {
+        LoadNextLevel();
+      }
       //
       else if (Input.GetKeyDown('1'))
       {
@@ -164,13 +176,25 @@ void update()
         else
           currentGuiWindow = null;
       }
+      //
+      else if (Input.GetKeyDown(TAB))
+      {
+        if (currentGuiWindow == null)
+        {
+          currentGuiWindow = gui_blockSelector;
+          currentGuiWindow.close = false;
+        }
+        //
+        else
+          currentGuiWindow = null;
+      }
     }
 
     // Save effect
     if (saveEffect)
     {
       saveEffectTime += deltaTime;
-      if(saveEffectTime >= 1.25)
+      if (saveEffectTime >= 1.25)
         saveEffect = false;
     }
 
@@ -228,6 +252,9 @@ void update()
         else if (Input.GetMouseButton(RIGHT))
         {
           Editor.EraseBlock(x, y, gameMap);
+        } else if (Input.GetMouseButton(CENTER))
+        {
+          Editor.SelectBlock(x, y, gameMap);
         }
       }
     }
@@ -237,7 +264,7 @@ void update()
       gameMap.update();
 
     // Check if level is complete
-    if (!Editor.enabled && gameMap.targetsFilled >= gameMap.targetCount && gameMap.targetCount > 0)
+    if (!Editor.enabled && !Editor.preventLevelCompletion && gameMap.targetsFilled >= gameMap.targetCount && gameMap.targetCount > 0)
     {
       // Initial Level Complete
       if (!levelTransitionMode)
@@ -334,11 +361,6 @@ void update()
           levelTransitionMode = true;
           levelTransitionIsReset = true;
         }
-      }
-      // Debug
-      else if (Input.GetKeyDown('t') || Input.GetKeyDown('T'))
-      {
-        LoadNextLevel();
       }
       // Read Message
       else if (Input.GetKeyDown(ENTER))
@@ -522,12 +544,12 @@ void ExportLevel(File file)
   {
     for (int x = 0; x < gameMap.m_width; x++)
     {
-      if (gameMap.bgLayer.nodes[x][y].type != BlockType.NOTHING)
-      {
-        output.print(WriteMapChar(gameMap.bgLayer.nodes[x][y].type));
-      } else if (gameMap.entityLayer.nodes[x][y].type != BlockType.NOTHING)
+      if (gameMap.entityLayer.nodes[x][y].type != BlockType.NOTHING)
       {
         output.print(WriteMapChar(gameMap.entityLayer.nodes[x][y].type));
+      } else if (gameMap.bgLayer.nodes[x][y].type != BlockType.NOTHING)
+      {
+        output.print(WriteMapChar(gameMap.bgLayer.nodes[x][y].type));
       } else
       {
         output.print('0');
@@ -592,8 +614,15 @@ void Move(Direction direction)
         // Update Player Sprite
         gameMap.entityLayer.nodes[x][y].UpdateSprite(x, y);
 
-        // Check if next board spot is empty
+        // Check if blocked
         if (
+          gameMap.bgLayer.nodes[x+OffsetX][y+OffsetY].blockDirection == direction
+          )
+        {
+          // Do nothing
+        }
+        // Check if next board spot is empty
+        else if (
           gameMap.entityLayer.nodes[x+OffsetX][y+OffsetY].solid == false &&
           gameMap.bgLayer.nodes[x+OffsetX][y+OffsetY].solid == false
           )
@@ -621,16 +650,18 @@ void Move(Direction direction)
           // Keep future checking until reached end of map or empty space
           while (
             CanMove &&
-            gameMap.IsInsideBoard(x+int(futureCheck.x), y+int(futureCheck.y)) &&
+            gameMap.IsInsideBoard(x+int(futureCheck.x), y+int(futureCheck.y)) && // next spot is on board
             gameMap.bgLayer.nodes[x+int(futureCheck.x)][y+int(futureCheck.y)].solid == false &&
             gameMap.entityLayer.nodes[x+int(futureCheck.x)][y+int(futureCheck.y)].type != BlockType.NOTHING
             )
           {
-            // Check if allowed to make an additional hop
-            if (
+            boolean BlockedPath = (gameMap.bgLayer.nodes[x+int(futureCheck.x)][y+int(futureCheck.y)].blockDirection == direction);
+            boolean CanPush = 
               (h_mode && gameMap.entityLayer.nodes[x+int(futureCheck.x)][y+int(futureCheck.y)].pushable_h) ||
-              (v_mode && gameMap.entityLayer.nodes[x+int(futureCheck.x)][y+int(futureCheck.y)].pushable_v)
-              )
+              (v_mode && gameMap.entityLayer.nodes[x+int(futureCheck.x)][y+int(futureCheck.y)].pushable_v);
+
+            // Check if allowed to make an additional hop
+            if (!BlockedPath && CanPush)
             {
               futureCheck.add(DirectionOffset);
             } else
@@ -641,6 +672,9 @@ void Move(Direction direction)
             CanMove = false;
           // Check if touching a solid block
           else if (gameMap.bgLayer.nodes[x+int(futureCheck.x)][y+int(futureCheck.y)].solid == true)
+            CanMove = false;
+          // Check if blocked path
+          else if (gameMap.bgLayer.nodes[x+int(futureCheck.x)][y+int(futureCheck.y)].blockDirection == direction)
             CanMove = false;
 
           // If can move is allowed, then move everything

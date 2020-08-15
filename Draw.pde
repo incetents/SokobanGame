@@ -56,10 +56,10 @@ void draw()
     noFill();
     stroke(0, 0, 255);
     rect(0, 0, gameMap.m_width * BlockSize, gameMap.m_height * BlockSize);
-    
+
     stroke(255, 0, 255);
     rect(BlockSize/2.0, BlockSize/2.0, gameMap.m_width * BlockSize - BlockSize, gameMap.m_height * BlockSize - BlockSize);
-    
+
     noStroke();
   }
 
@@ -135,6 +135,7 @@ void draw()
     rect(0, 0, width, 32 + padding * 2);
 
     // Targets
+    if (!Editor.preventLevelCompletion)
     {
       float xStart = 0;
 
@@ -172,9 +173,16 @@ void draw()
     }
   }
 
+  // No completion mode
+  if (Editor.preventLevelCompletion)
+  {
+    RenderText("LEVEL COMPLETE LOCKED", 5, 2, color(255, 255, 255, 100), TEXTH.LEFT, 0.75);
+  }
+
   // UI Editor Info
   {
-    float yStart = height - 42;
+    float hStart = 62;
+    float yStart = height - hStart;
     float fontYOffset = 2;
 
     // Bar
@@ -183,14 +191,16 @@ void draw()
       if (mouseY < yStart) 
       {
         fill(50, 50, 50, 150);
-        rect(0, yStart, width, 42);
+        rect(0, yStart, width, hStart);
       }
     }
     //
     else
     {
+      yStart += 20;
+      
       fill(50, 50, 50, 50);
-      rect(0, yStart, 110, 42);
+      rect(0, yStart, 110, hStart);
     }
 
 
@@ -205,28 +215,31 @@ void draw()
     {
       // Separator
       fill(50);
-      rect(110, yStart, 4, 42);
+      rect(110, yStart, 4, hStart);
 
       // Block Selection
       Sprite imageSprite = SpriteMap.get(Editor.BlockDrawSpriteList.get(Editor.BlockDrawIndex));
       if (imageSprite != null)
       {
-        image(imageSprite.image, 136, yStart + 19 + 2, 38, 38);
+        image(imageSprite.image, 136, yStart + 28, 38, 38);
       }
 
       // Block Selection Text
       RenderText("SCRL - Change Block", 160, yStart - getFontHeight() / 2.0 + fontYOffset, color(150), TEXTH.LEFT, 0.5);
       RenderText("LMB - DRAW | RMB - ERASE", 160, yStart + fontYOffset, color(150), TEXTH.LEFT, 0.5);
+      RenderText("SCRL CLICK - SELECT BLOCK", 160, yStart + fontYOffset +  getFontHeight() / 2.0, color(150), TEXTH.LEFT, 0.5);
 
       // Separator
       fill(50);
-      rect(420, yStart, 4, 42);
+      rect(440, yStart, 4, hStart);
 
       // Shortcuts
-      RenderText("'1' Level Selector", 428, yStart - getFontHeight() / 2.0 + fontYOffset, color(150), TEXTH.LEFT, 0.5);
-      RenderText("'2' Map Settings", 428, yStart + fontYOffset, color(150), TEXTH.LEFT, 0.5);
-      
+      RenderText("'1' Level Selector", 448, yStart - getFontHeight() / 2.0 + fontYOffset, color(150), TEXTH.LEFT, 0.5);
+      RenderText("'2' Map Settings", 448, yStart + fontYOffset, color(150), TEXTH.LEFT, 0.5);
+      RenderText("'TAB' Block Selector", 448, yStart + fontYOffset + getFontHeight() / 2.0, color(150), TEXTH.LEFT, 0.5);
+
       RenderText("'SPACE' Save Level Internally", 680, yStart - getFontHeight() / 2.0 + fontYOffset, color(150), TEXTH.LEFT, 0.5);
+      RenderText("'Q' Lock Level | 'T' Skip Level", 680, yStart + fontYOffset, color(150), TEXTH.LEFT, 0.5);
     }
   }
 
@@ -236,8 +249,8 @@ void draw()
     // Shrinking Circle
     shader(shader_transition, TRIANGLES);
     shader_transition.set("t", 1.0 - levelTransitionTime);
-    shader_transition.set("blockCountW", float(gameMap.m_width));
-    shader_transition.set("blockCountH", float(gameMap.m_height));
+    shader_transition.set("blockCountW", float(max(12, gameMap.m_width)));
+    shader_transition.set("blockCountH", float(max(12, gameMap.m_height)));
 
     fill(255, 255, 255);
     rect(0, 0, width, height);
@@ -266,11 +279,11 @@ void draw()
     currentGuiWindow.draw();
     currentGuiWindow.drawResizeButton();
   }
-  
+
   // Saving
-  if(saveEffect)
+  if (saveEffect)
   {
-     RenderTextBG("SAVED LEVEL INTERALLY", width/2.0, height/2.0, 15, color(255), TEXTH.CENTER, 1.0);
+    RenderTextBG("SAVED LEVEL INTERALLY", width/2.0, height/2.0, 15, color(255), TEXTH.CENTER, 1.0);
     RenderTextBG("SAVED LEVEL INTERALLY", width/2.0, height/2.0, 5, color(0), TEXTH.CENTER, 1.0);
     RenderText("SAVED LEVEL INTERALLY", width/2.0, height/2.0, color(255), TEXTH.CENTER, 1.0);
   }
